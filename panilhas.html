@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editor de Planilhas com Abas (beta)</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            background-color: #f4f4f4;
+            margin: 20px;
+        }
+        #tab-container {
+            background-color: #ddd;
+            border-bottom: 1px solid #ccc;
+            display: flex;
+            padding: 10px;
+            border-radius: 5px 5px 0 0;
+        }
+        .tab {
+            padding: 8px 15px;
+            margin-right: 5px;
+            border: 1px solid #ccc;
+            border-bottom: none;
+            background-color: #f0f0f0;
+            cursor: pointer;
+            border-radius: 5px 5px 0 0;
+        }
+        .tab.active {
+            background-color: #fff;
+            font-weight: bold;
+        }
+        .tab input[type="text"] {
+            border: none;
+            background: none;
+            font-size: inherit;
+            padding: 0;
+            margin-left: 5px;
+            width: 100px;
+        }
+        #content-container {
+            background-color: #fff;
+            border: 1px solid #ccc;
+            padding: 15px;
+            border-radius: 0 5px 5px 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        .spreadsheet-container {
+            display: none;
+            width: 100%;
+            overflow-x: auto;
+            position: relative; /* Para posicionar o overlay corretamente */
+        }
+        .spreadsheet-container.active {
+            display: block;
+        }
+        #toolbar {
+            background-color: #e0e0e0;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        #toolbar > * {
+            margin-bottom: 5px;
+        }
+        #toolbar button, #toolbar select, #toolbar input[type="file"], #add-tab-btn, #save-all-btn {
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        #toolbar select {
+            padding: 7px;
+        }
+        #toolbar button:hover, #add-tab-btn:hover, #save-all-btn:hover {
+            background-color: #d0d0d0;
+        }
+        #import-label {
+            margin-right: 8px;
+            font-size: 14px;
+        }
+        #link-modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #fff;
+            padding: 20px;
+            border: 1px solid #ccc;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            border-radius: 5px;
+        }
+        #link-modal label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        #link-modal input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        #link-modal button {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 5px;
+        }
+        #link-modal button.confirm {
+            background-color: #5cb85c;
+            color: white;
+        }
+        #link-modal button.cancel {
+            background-color: #f44336;
+            color: white;
+        }
+        .spreadsheet {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        .spreadsheet td, .spreadsheet th {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+            position: relative; /* Para posicionar o input e o overlay */
+        }
+        .spreadsheet th {
+            background-color: #f0f0f0;
+        }
+        .spreadsheet td input {
+            width: 100%;
+            height: 100%;
+            border: none;
+            padding: 0;
+            font-size: 14px;
+            box-sizing: border-box;
+            display: block; /* Garante que o input preencha a célula */
+        }
+        .edit-input {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: 2px solid #4CAF50; /* Verde, para destacar a edição */
+            padding: 8px;
+            font-size: 14px;
+            box-sizing: border-box;
+            display: none; /* Inicialmente escondido */
+            z-index: 10;
+            background-color: white;
+        }
+
+        #formula-input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        .selected-cell {
+             background-color: #bee5eb !important;
+        }
+
+        .merged-cell {
+            background-color: #fff !important;
+            border: 2px solid #007bff;
+        }
+
+    </style>
+</head>
+<body>
+    <h1>Editor de Planilhas com Abas</h1>
+
+    <div id="toolbar">
+        <button id="add-tab-btn" onclick="addTab()">Adicionar Aba</button>
+        <label id="import-label" for="import-input">Importar JSON:</label>
+        <input type="file" id="import-input" accept=".json" onchange="loadAllDocuments(this)">
+        <button id="save-all-btn" onclick="saveAllDocuments()">Salvar Tudo como JSON</button>
+        <input type="text" id="formula-input" placeholder="Fórmula ou valor direto" onchange="updateCellValue()">
+        <button onclick="formatText('bold')"><i class="fas fa-bold"></i> Negrito</button>
+        <button onclick="formatText('italic')"><i class="fas fa-italic"></i> Itálico</button>
+        <button onclick="formatText('underline')"><i class="fas fa-underline"></i> Sublinhado</button>
+        <button onclick="alignText('justifyLeft')"><i class="fas fa-align-left"></i> Esquerda</button>
+        <button onclick="alignText('justifyCenter')"><i class="fas fa-align-center"></i> Centralizar</button>
+         <button onclick="alignText('justifyRight')"><i class="fas fa-align-right"></i> Direita</button>
+        <button onclick="mergeCells()">Mesclar Células</button>
+        <button onclick="unmergeCells()">Desmesclar Células</button>
+    </div>
+
+    <div id="tab-container">
+    </div>
+
+    <div id="content-container">
+    </div>
+
+    <div id="link-modal">
+        <label for="link-url">URL:</label>
+        <input type="text" id="link-url">
+        <button class="confirm" onclick="insertLink()">Inserir</button>
+        <button class="cancel" onclick="hideLinkDialog()">Cancelar</button>
+    </div>
+
+    <script>
+        let tabCounter = 1;
+        let activeTabId = null;
+        let selectedCells = [];
+        let mergedCells = new Set();
+
+        function addTab(name = `Planilha ${tabCounter}`, data = null) {
+            const tabId = `tab-${tabCounter}`;
+            const spreadsheetId = `spreadsheet-${tabCounter}`;
+            const tabContainer = document.getElementById('tab-container');
+            const contentContainer = document.getElementById('content-container');
+
+            // Criar a aba
+            const tabDiv = document.createElement('div');
+            tabDiv.classList.add('tab');
+            tabDiv.setAttribute('data-tab-id', tabId);
+            tabDiv.innerHTML = `<input type="text" value="${name}" onchange="renameTab(this, '${tabId}')">`;
+            tabDiv.addEventListener('click', () => switchTab(tabId));
+            tabContainer.appendChild(tabDiv);
+
+            // Criar a planilha
+            const spreadsheetDiv = document.createElement('div');
+            spreadsheetDiv.id = spreadsheetId;
+            spreadsheetDiv.classList.add('spreadsheet-container');
+            const spreadsheet = createSpreadsheet(tabId, data);
+            spreadsheetDiv.appendChild(spreadsheet);
+            contentContainer.appendChild(spreadsheetDiv);
+
+            // Ativar a nova aba
+            switchTab(tabId);
+            tabCounter++;
+        }
+
+        function createSpreadsheet(tabId, data) {
+            const numRows = 20;
+            const numCols = 10;
+            const table = document.createElement('table');
+            table.classList.add('spreadsheet');
+            table.setAttribute('data-tab-id', tabId); // Armazenar o ID da aba na tabela
+            let headerRow = table.insertRow();
+            headerRow.insertCell().textContent = '';
+            for (let j = 0; j < numCols; j++) {
+                const th = document.createElement('th');
+                th.textContent = String.fromCharCode(65 + j);
+                headerRow.appendChild(th);
+            }
+
+            for (let i = 0; i < numRows; i++) {
+                const row = table.insertRow();
+                const rowHeader = row.insertCell();
+                rowHeader.textContent = i + 1;
+                for (let j = 0; j < numCols; j++) {
+                    const cell = row.insertCell();
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.value = data && data[i] && data[i][j] ? data[i][j] : '';
+                    input.addEventListener('click', (event) => handleCellClick(event.target));
+                    input.addEventListener('input', (event) => handleCellInput(event.target));
+                    cell.appendChild(input);
+                }
+            }
+            return table;
+        }
+
+        function switchTab(tabId) {
+            // Desativar a aba e a planilha ativos
+            const activeTab = document.querySelector('.tab.active');
+            const activeSpreadsheet = document.querySelector('.spreadsheet-container.active');
+
+            if (activeTab) {
+                activeTab.classList.remove('active');
+            }
+            if (activeSpreadsheet) {
+                activeSpreadsheet.classList.remove('active');
+            }
+
+            // Ativar a nova aba e a planilha correspondente
+            const newActiveTab = document.querySelector(`.tab[data-tab-id="${tabId}"]`);
+            const newActiveSpreadsheet = document.getElementById(tabId.replace('tab-', 'spreadsheet-'));
+
+            if (newActiveTab) {
+                newActiveTab.classList.add('active');
+            }
+            if (newActiveSpreadsheet) {
+                newActiveSpreadsheet.classList.add('active');
+            }
+
+            activeTabId = tabId;
+            selectedCells = []; // Limpa a seleção de células ao mudar de aba
+            updateFormulaInputValue();
+        }
+
+        function renameTab(inputElement, tabId) {
+            // O nome da aba já está sendo atualizado no input
+        }
+
+        function getSpreadsheetData(tabId) {
+            const spreadsheetId = tabId.replace('tab-', 'spreadsheet-');
+            const spreadsheetContainer = document.getElementById(spreadsheetId);
+            if (!spreadsheetContainer) return null;
+
+            const table = spreadsheetContainer.querySelector('table.spreadsheet');
+            if (!table) return null;
+
+            const data = [];
+            for (let i = 1; i < table.rows.length; i++) {
+                const rowData = [];
+                for (let j = 1; j < table.rows[i].cells.length; j++) {
+                    const input = table.rows[i].cells[j].querySelector('input');
+                     rowData.push(input ? input.value : '');
+                }
+                data.push(rowData);
+            }
+            return data;
+        }
+
+
+
+        function saveAllDocuments() {
+            const sheets = [];
+            const tabElements = document.querySelectorAll('#tab-container .tab');
+
+            tabElements.forEach(tabElement => {
+                const tabId = tabElement.getAttribute('data-tab-id');
+                const nameInput = tabElement.querySelector('input[type="text"]');
+                const sheetData = getSpreadsheetData(tabId);
+
+                if (nameInput && sheetData) {
+                    sheets.push({
+                        name: nameInput.value,
+                        data: sheetData
+                    });
+                }
+            });
+
+            const jsonData = JSON.stringify({ sheets: sheets });
+            const filename = 'todas_planilhas.json';
+            const blob = new Blob([jsonData], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function loadAllDocuments(input) {
+            const file = input.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        if (data && Array.isArray(data.sheets)) {
+                            // Limpar abas e planilhas existentes
+                            document.getElementById('tab-container').innerHTML = '';
+                            document.getElementById('content-container').innerHTML = '';
+                            tabCounter = 1;
+                            activeTabId = null;
+
+                            data.sheets.forEach(sheet => {
+                                addTab(sheet.name, sheet.data);
+                            });
+                        } else {
+                            alert('Arquivo JSON inválido: Formato de planilhas incorreto.');
+                        }
+                    } catch (error) {
+                        alert('Erro ao ler o arquivo JSON.');
+                    }
+                };
+                reader.readAsText(file);
+            }
+        }
+
+        // Adicionar a primeira aba ao carregar a página
+        addTab();
+
+        function handleCellClick(cellInput) {
+            clearSelection();
+            cellInput.focus();
+            cellInput.classList.add('selected-cell');
+            selectedCells.push(cellInput);
+            updateFormulaInputValue();
+        }
+
+        function handleCellInput(cellInput){
+            updateFormulaInputValue();
+        }
+
+        function updateFormulaInputValue() {
+            const formulaInput = document.getElementById('formula-input');
+             if (selectedCells.length === 1) {
+                formulaInput.value = selectedCells[0].value;
+             } else {
+                formulaInput.value = '';
+             }
+        }
+
+        function updateCellValue() {
+            const formulaInput = document.getElementById('formula-input');
+            selectedCells.forEach(cell => {
+                 cell.value = formulaInput.value;
+            });
+        }
+
+        function formatText(command, value = null) {
+             selectedCells.forEach(cell => {
+                cell.style.fontWeight = command === 'bold' ? (cell.style.fontWeight === 'bold' ? 'normal' : 'bold') : cell.style.fontWeight;
+                cell.style.fontStyle = command === 'italic' ? (cell.style.fontStyle === 'italic' ? 'normal' : 'italic') : cell.style.fontStyle;
+                cell.style.textDecoration = command === 'underline' ? (cell.style.textDecoration === 'underline' ? 'none' : 'underline') : cell.style.textDecoration;
+                cell.style.textDecoration = command === 'strikeThrough' ? (cell.style.textDecoration === 'line-through' ? 'none' : 'line-through') : cell.style.textDecoration;
+                cell.style.textAlign = command.startsWith('justify') ? (getComputedStyle(cell).textAlign === command.replace('justify', '') ? 'left' : command.replace('justify', '')) : cell.style.textAlign;
+            });
+        }
+
+        function alignText(command) {
+            selectedCells.forEach(cell => {
+                cell.style.textAlign = command.replace('justify', '');
+            });
+        }
+
+
+
+        function clearSelection() {
+            selectedCells.forEach(cell => {
+                cell.classList.remove('selected-cell');
+            });
+            selectedCells = [];
+        }
+
+        function mergeCells() {
+            if (selectedCells.length < 2) return;
+
+            const tabId = activeTabId;
+            const spreadsheetContainer = document.getElementById(tabId.replace('tab-', 'spreadsheet-'));
+            if (!spreadsheetContainer) return;
+            const table = spreadsheetContainer.querySelector('table.spreadsheet');
+            if (!table) return;
+
+            let minRowIndex = Infinity;
+            let maxRowIndex = -Infinity;
+            let minColIndex = Infinity;
+            let maxColIndex = -Infinity;
+
+            selectedCells.forEach(cell => {
+                const cellElement = cell.parentElement;
+                const rowIndex = cellElement.parentNode.rowIndex;
+                const colIndex = cellElement.cellIndex;
+
+                minRowIndex = Math.min(minRowIndex, rowIndex);
+                maxRowIndex = Math.max(maxRowIndex, rowIndex);
+                minColIndex = Math.min(minColIndex, colIndex);
+                maxColIndex = Math.max(maxColIndex, colIndex);
+            });
+
+            if (minRowIndex === maxRowIndex && minColIndex === maxColIndex) return;
+
+            const numRows = maxRowIndex - minRowIndex + 1;
+            const numCols = maxColIndex - minColIndex + 1;
+
+            for (let i = minRowIndex; i <= maxRowIndex; i++) {
+                for (let j = minColIndex; j <= maxColIndex; j++) {
+                    const cell = table.rows[i].cells[j];
+                    if (i === minRowIndex && j === minColIndex) {
+                        cell.rowSpan = numRows;
+                        cell.colSpan = numCols;
+                        cell.classList.add('merged-cell');
+                         const firstInput = cell.querySelector('input');
+                         if(firstInput){
+                            firstInput.style.display = 'block';
+                         }
+                    } else {
+                        cell.style.display = 'none';
+                    }
+                }
+            }
+
+            const mergedCellId = `${tabId}-merge-${minRowIndex}-${minColIndex}-${numRows}-${numCols}`;
+            mergedCells.add(mergedCellId);
+            table.setAttribute('data-merged-cells', Array.from(mergedCells).join(','));
+            clearSelection();
+            const firstCell = table.rows[minRowIndex].cells[minColIndex];
+             handleCellClick(firstCell.querySelector('input'));
+        }
+
+        function unmergeCells() {
+            const tabId = activeTabId;
+            const spreadsheetContainer = document.getElementById(tabId.replace('tab-', 'spreadsheet-'));
+            if (!spreadsheetContainer) return;
+            const table = spreadsheetContainer.querySelector('table.spreadsheet');
+            if (!table) return;
+
+             if (!table.hasAttribute('data-merged-cells')) return;
+
+            const mergedCellsData = table.getAttribute('data-merged-cells').split(',');
+            if (!mergedCellsData || mergedCellsData.length === 0) return;
+
+            mergedCellsData.forEach(mergedCellId => {
+                const parts = mergedCellId.split('-');
+                if (parts[0] === tabId && parts.length === 5) {
+                    const minRowIndex = parseInt(parts[2]);
+                    const minColIndex = parseInt(parts[3]);
+                    const numRows = parseInt(parts[4]);
+                    const numCols = parseInt(parts[5]);
+
+                    const cell = table.rows[minRowIndex].cells[minColIndex];
+                    cell.rowSpan = 1;
+                    cell.colSpan = 1;
+                    cell.classList.remove('merged-cell');
+                    for (let i = minRowIndex; i < minRowIndex + numRows; i++) {
+                        for (let j = minColIndex + 1; j < minColIndex + numCols; j++) {
+                            const cellToRestore = table.rows[i].cells[j];
+                            cellToRestore.style.display = '';
+                        }
+                    }
+                }
+            });
+            mergedCells.clear();
+            table.removeAttribute('data-merged-cells');
+            clearSelection();
+        }
+
+    </script>
+     <script src="https://kit.fontawesome.com/your_fontawesome_kit.js" crossorigin="anonymous"></script>
+</body>
+</html>
