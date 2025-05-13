@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quebrar Imagem em JSON</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            text-align: center;
+        }
+        #inputContainer {
+            margin-bottom: 20px;
+        }
+        canvas {
+            border: 1px solid #ccc;
+            display: none;
+            margin-bottom: 20px;
+            max-width: 100%;
+            height: auto;
+        }
+        #downloadLink, #saveImageLink {
+            display: none;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-top: 20px;
+            margin-left: 10px; /* Adiciona um pouco de espaço entre os botões */
+        }
+        #downloadLink:hover, #saveImageLink:hover {
+            background-color: #45a049;
+        }
+        #jsonCanvas {
+            border: 1px solid #ccc;
+            margin-top: 20px;
+            display: none;
+            max-width: 100%;
+            height: auto;
+        }
+        #importContainer{
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #buttonContainer { /* Novo container para os botões */
+            display: flex;
+            justify-content: center; /* Centraliza os botões horizontalmente */
+            margin-top: 20px; /* Adiciona espaço acima dos botões */
+        }
+    </style>
+</head>
+<body>
+    <div id="inputContainer">
+        <label for="imageInput">Selecione a Imagem:</label>
+        <input type="file" id="imageInput" accept="image/*">
+    </div>
+    <canvas id="imageCanvas"></canvas>
+    <div id="buttonContainer">
+        <button id="processButton" disabled>Processar Imagem</button>
+        <a id="downloadLink" download="pixels.json">Download JSON</a>
+        <a id="saveImageLink" download="reconstructed_image.png">Salvar Imagem</a>
+    </div>
+
+    <div id="importContainer">
+        <label for="jsonInput">Selecione o JSON:</label>
+        <input type="file" id="jsonInput" accept=".json">
+        <canvas id="jsonCanvas"></canvas>
+    </div>
+
+    <script>
+        const imageInput = document.getElementById('imageInput');
+        const imageCanvas = document.getElementById('imageCanvas');
+        const ctx = imageCanvas.getContext('2d');
+        const processButton = document.getElementById('processButton');
+        const downloadLink = document.getElementById('downloadLink');
+        const saveImageLink = document.getElementById('saveImageLink'); // Novo elemento
+
+        const jsonInput = document.getElementById('jsonInput');
+        const jsonCanvas = document.getElementById('jsonCanvas');
+        const jsonCtx = jsonCanvas.getContext('2d');
+
+
+        let img = new Image();
+        let imageData = null;
+
+        imageInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+
+            reader.onload = (e) => {
+                img.onload = () => {
+                    imageCanvas.width = img.width;
+                    imageCanvas.height = img.height;
+                    ctx.drawImage(img, 0, 0, img.width, img.height);
+                    imageData = ctx.getImageData(0, 0, img.width, img.height);
+                    processButton.disabled = false;
+                    imageCanvas.style.display = 'block';
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+
+        processButton.addEventListener('click', () => {
+            if (!imageData) {
+                alert("Por favor, selecione uma imagem primeiro.");
+                return;
+            }
+
+            const pixelData = getPixelData(imageData);
+            const jsonData = JSON.stringify(pixelData, null, 2);
+            downloadLink.href = URL.createObjectURL(new Blob([jsonData], { type: 'application/json' }));
+            downloadLink.style.display = 'block';
+        });
+
+
+
+        function getPixelData(imageData) {
+            const data = imageData.data;
+            const width = imageData.width;
+            const height = imageData.height;
+            const pixelArray = [];
+
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    const index = (x + y * width) * 4;
+                    const r = data[index];
+                    const g = data[index + 1];
+                    const b = data[index + 2];
+                    const a = data[index + 3];
+
+                    pixelArray.push({
+                        x: x,
+                        y: y,
+                        z: 0,
+                        r: r,
+                        g: g,
+                        b: b,
+                        a: a,
+                    });
+                }
+            }
+            return pixelArray;
+        }
+
+
+
+        jsonInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+
+            reader.onload = (e) => {
+                try {
+                    const jsonData = e.target.result;
+                    reconstructImage(jsonData);
+                } catch (error) {
+                    console.error("Erro ao ler o arquivo JSON:", error);
+                    alert("Ocorreu um erro ao ler o arquivo JSON.");
+                }
+            };
+            reader.readAsText(file);
+        });
+
+        function reconstructImage(jsonData) {
+            try {
+                const pixelArray = JSON.parse(jsonData);
+
+                if (!pixelArray || pixelArray.length === 0) {
+                    console.error("JSON data is empty or invalid.");
+                    alert("O arquivo JSON está vazio ou inválido.");
+                    return;
+                }
+
+                // Determine as dimensões da imagem reconstruída
+                let maxX = 0;
+                let maxY = 0;
+                pixelArray.forEach(pixel => {
+                    maxX = Math.max(maxX, pixel.x);
+                    maxY = Math.max(maxY, pixel.y);
+                });
+
+                jsonCanvas.width = maxX + 1;
+                jsonCanvas.height = maxY + 1;
+                jsonCanvas.style.display = 'block';
+
+
+                jsonCtx.clearRect(0, 0, jsonCanvas.width, jsonCanvas.height);
+                pixelArray.forEach(pixel => {
+                    jsonCtx.fillStyle = `rgba(${pixel.r}, ${pixel.g}, ${pixel.b}, ${pixel.a / 255})`;
+                    jsonCtx.fillRect(pixel.x, pixel.y, 1, 1);
+                });
+
+                // Habilita o botão de salvar após a reconstrução
+                saveImageLink.style.display = 'block';
+                saveImageLink.href = jsonCanvas.toDataURL('image/png'); // Converte o canvas para PNG
+                saveImageLink.download = 'reconstructed_image.png'; // Define o nome do arquivo
+            } catch (error) {
+                console.error("Erro ao analisar o JSON:", error);
+                alert("Ocorreu um erro ao processar o arquivo JSON. Verifique o formato.");
+            }
+        }
+    </script>
+</body>
+</html>
