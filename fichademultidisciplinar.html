@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ficha de Atendimento Multidisciplinar</title>
+    <link href="https://fonts.googleapis.com/css2?family=Arial:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        form {
+            margin-bottom: 20px;
+        }
+        form label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: bold;
+        }
+        form input[type="text"],
+        form input[type="date"],
+        form textarea,
+        form select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+        form textarea {
+            resize: vertical;
+            height: 100px;
+        }
+        form button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+            margin-top: 10px;
+        }
+        form button:hover {
+            background-color: #0056b3;
+        }
+        #export-import-controls {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        #export-import-controls button,
+        #export-import-controls label {
+            background-color: #28a745;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+        #export-import-controls button:hover,
+        #export-import-controls label:hover {
+            background-color: #218838;
+        }
+        #export-import-controls input[type="file"] {
+            display: none;
+        }
+        #print-button {
+            background-color: #17a2b8;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+            margin: 20px auto 0 auto;
+            display: block;
+            width: 200px;
+            text-align: center;
+        }
+        #print-button:hover {
+            background-color: #138496;
+        }
+        #message-box {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border: 1px solid #c3e6cb;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            z-index: 1000;
+            opacity: 1;
+            transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
+        }
+        .message-box.fade-out {
+            opacity: 0;
+            transform: translateX(-50%) translateY(-20px);
+        }
+        .message-box.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border-color: #f5c6cb;
+        }
+
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #printable-content, #printable-content * {
+                visibility: visible;
+            }
+            #printable-content {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                padding: 20px; /* Adiciona padding para melhor aparência na impressão */
+                box-sizing: border-box;
+            }
+            #printable-content div p { /* Adiciona margem inferior aos parágrafos para melhor legibilidade na impressão */
+                margin-bottom: 10px;
+            }
+            #print-button, #export-import-controls, form {
+                display: none;
+            }
+            body {
+                background-color: #fff;
+            }
+            .container{
+                box-shadow: none;
+                margin: 0; /* Remove margin na impressão */
+                padding: 0; /* Remove padding na impressão */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Ficha de Atendimento Multidisciplinar</h1>
+
+        <form id="patient-form">
+            <label for="nome-completo">Nome Completo:</label>
+            <input type="text" id="nome-completo" name="nome-completo" required>
+
+            <label for="data-nascimento">Data de Nascimento:</label>
+            <input type="date" id="data-nascimento" name="data-nascimento" required>
+
+            <label for="cpf">CPF:</label>
+            <input type="text" id="cpf" name="cpf"> <label for="rg">RG:</label>
+            <input type="text" id="rg" name="rg">
+
+            <label for="endereco">Endereço:</label>
+            <input type="text" id="endereco" name="endereco">
+
+            <label for="telefone">Telefone:</label>
+            <input type="text" id="telefone" name="telefone">
+
+            <label for="email">Email:</label>
+            <input type="text" id="email" name="email">
+
+            <label for="profissao">Profissão:</label>
+            <input type="text" id="profissao" name="profissao">
+
+            <label for="estado-civil">Estado Civil:</label>
+            <select id="estado-civil" name="estado-civil">
+                <option value="">Selecione</option>
+                <option value="solteiro">Solteiro(a)</option>
+                <option value="casado">Casado(a)</option>
+                <option value="divorciado">Divorciado(a)</option>
+                <option value="viuvo">Viúvo(a)</option>
+                <option value="outro">Outro</option>
+            </select>
+
+            <label for="area-atendimento">Área de Atendimento:</label>
+             <select id="area-atendimento" name="area-atendimento" required>
+                <option value="">Selecione a Área</option>
+                <option value="psicologia">Psicologia</option>
+                <option value="servico-social">Serviço Social</option>
+                <option value="nutricao">Nutrição</option>
+                <option value="fisioterapia">Fisioterapia</option>
+                <option value="pedagogia">Pedagogia</option>
+                <option value="outro">Outro (Especificar nas Observações)</option>
+            </select>
+
+
+            <label for="motivo-contato">Motivo do Contato / Encaminhamento:</label>
+            <textarea id="motivo-contato" name="motivo-contato" required></textarea>
+
+            <label for="historico-relevante">Histórico Relevante (Social, Educacional, Familiar, etc.):</label>
+            <textarea id="historico-relevante" name="historico-relevante"></textarea>
+
+            <label for="avaliacao-inicial">Avaliação Inicial:</label>
+            <textarea id="avaliacao-inicial" name="avaliacao-inicial" required></textarea>
+
+            <label for="plano-atendimento">Plano de Atendimento / Conduta:</label>
+            <textarea id="plano-atendimento" name="plano-atendimento"></textarea>
+
+             <label for="observacoes">Observações Adicionais:</label>
+            <textarea id="observacoes" name="observacoes"></textarea>
+
+            <button type="submit">Salvar Ficha</button>
+        </form>
+
+        <div id="export-import-controls">
+            <button id="export-button">Exportar para JSON</button>
+            <label for="import-file">Importar de JSON</label>
+            <input type="file" id="import-file" accept=".json">
+            <button id="export-csv-button">Exportar para CSV</button>
+        </div>
+
+        <button id="print-button" onclick="exportAndPrint()">Imprimir Ficha</button>
+
+        <div id="printable-content" style="display: none;">
+            <h2>Ficha de Atendimento Multidisciplinar</h2>
+            <div id="patient-data-display">
+                </div>
+        </div>
+    </div>
+
+    <script>
+        const patientForm = document.getElementById('patient-form');
+        const exportButton = document.getElementById('export-button');
+        const importFile = document.getElementById('import-file');
+        const messageBox = document.createElement('div');
+        messageBox.id = 'message-box';
+        document.body.appendChild(messageBox); // Adiciona messageBox ao body logo no início
+        const exportCsvButton = document.getElementById('export-csv-button');
+        const printableContent = document.getElementById('printable-content');
+        const patientDataDisplay = document.getElementById('patient-data-display');
+
+        function showMessage(message, type = 'success') {
+            // Re-adiciona a messageBox caso tenha sido removida por um timeout anterior
+            if (!document.getElementById('message-box')) {
+                 const messageBoxElement = document.createElement('div');
+                 messageBoxElement.id = 'message-box';
+                 document.body.appendChild(messageBoxElement);
+            }
+             const currentMessageBox = document.getElementById('message-box');
+            currentMessageBox.textContent = message;
+            currentMessageBox.className = `message-box ${type}`;
+            currentMessageBox.style.opacity = '1'; // Garante que está visível no início
+            currentMessageBox.style.transform = 'translateX(-50%)'; // Garante a posição inicial
+
+            setTimeout(() => {
+                currentMessageBox.classList.add('fade-out');
+                setTimeout(() => {
+                    // Opcional: remover a caixa após a animação para limpar o DOM
+                     if (document.getElementById('message-box')) {
+                         document.getElementById('message-box').remove();
+                     }
+                }, 500); // Tempo da transição fade-out
+            }, 3000); // Tempo antes de começar a desaparecer
+        }
+
+
+        function salvarFicha(event) {
+            event.preventDefault();
+
+            const formData = new FormData(patientForm);
+            const patientData = {};
+
+            // Coleta todos os campos do formulário usando os 'name' attributes
+            formData.forEach((value, key) => {
+                patientData[key] = value;
+            });
+
+            console.log('Dados do Atendimento Multidisciplinar:', patientData);
+            showMessage('Ficha de atendimento salva com sucesso!');
+            // patientForm.reset(); // Opcional: resetar o formulário após salvar
+
+            // Prepara os dados para a área de impressão/visualização
+            displayPatientDataForPrint(patientData);
+        }
+
+        function exportToJson() {
+            const formData = new FormData(patientForm);
+            const patientData = {};
+
+            formData.forEach((value, key) => {
+                 // Inclui apenas campos com valor preenchido, exceto para alguns tipos (como selects)
+                if (value || patientForm.elements[key]?.type === 'select-one') {
+                     patientData[key] = value;
+                }
+            });
+
+             // Adiciona campos que podem não ser coletados pelo FormData (ex: campos desabilitados, mas não é o caso aqui)
+             // Mas é bom ter em mente se o formulário ficar mais complexo.
+
+            if (Object.keys(patientData).length <= 1) { // Verifica se há mais do que apenas o campo de área de atendimento selecionado por padrão, por exemplo.
+                 showMessage('Não há dados suficientes para exportar!', 'error');
+                 return;
+            }
+
+            const jsonData = JSON.stringify(patientData, null, 2);
+            const blob = new Blob([jsonData], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `ficha_atendimento_${patientData["nome-completo"] ? patientData["nome-completo"].replace(/[^a-zA-Z0-9]/g, '_') : 'multidisciplinar'}.json`; // Nome do arquivo mais descritivo
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showMessage('Ficha de atendimento exportada para JSON com sucesso!');
+        }
+
+        function exportToCsv() {
+            const formData = new FormData(patientForm);
+            const patientData = {};
+
+             formData.forEach((value, key) => {
+                 if (value || patientForm.elements[key]?.type === 'select-one') {
+                     patientData[key] = value;
+                 }
+            });
+
+             if (Object.keys(patientData).length <= 1) {
+                 showMessage('Não há dados suficientes para exportar!', 'error');
+                 return;
+             }
+
+            // Define os cabeçalhos CSV com os novos nomes dos campos
+            const headers = [
+                "Nome Completo", "Data de Nascimento", "CPF", "RG", "Endereço",
+                "Telefone", "Email", "Profissão", "Estado Civil", "Área de Atendimento",
+                "Motivo do Contato / Encaminhamento", "Histórico Relevante",
+                "Avaliação Inicial", "Plano de Atendimento / Conduta", "Observações Adicionais"
+            ];
+
+            // Mapeia as chaves dos dados para a ordem dos cabeçalhos
+            const keys = [
+                "nome-completo", "data-nascimento", "cpf", "rg", "endereco",
+                "telefone", "email", "profissao", "estado-civil", "area-atendimento",
+                "motivo-contato", "historico-relevante",
+                "avaliacao-inicial", "plano-atendimento", "observacoes"
+            ];
+
+             let csvContent = headers.join(",") + "\n";
+
+             // Prepara a linha de dados, tratando vírgulas internas e quebras de linha em campos de texto
+             const dataRow = keys.map(key => {
+                 let value = patientData[key] || "";
+                 // Envolve o valor em aspas duplas se contiver vírgulas, aspas duplas ou quebras de linha
+                 if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+                     value = '"' + value.replace(/"/g, '""') + '"'; // Escapa aspas duplas
+                 }
+                 return value;
+             }).join(",");
+
+             csvContent += dataRow + "\n";
+
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `ficha_atendimento_${patientData["nome-completo"] ? patientData["nome-completo"].replace(/[^a-zA-Z0-9]/g, '_') : 'multidisciplinar'}.csv`; // Nome do arquivo mais descritivo
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showMessage('Ficha de atendimento exportada para CSV com sucesso!');
+        }
+
+
+        function importFromJson(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    const formElements = patientForm.elements;
+
+                    for (const key in importedData) {
+                        // Verifica se o elemento do formulário existe com o nome correspondente
+                        if (formElements[key]) {
+                             // Limpa campos de texto e textarea antes de preencher para evitar acúmulo de texto
+                            if (formElements[key].type === 'text' || formElements[key].type === 'textarea' || formElements[key].type === 'date') {
+                                formElements[key].value = '';
+                            }
+
+                            // Preenche o valor
+                            formElements[key].value = importedData[key];
+
+                             // Dispara o evento 'change' ou 'input' se necessário para frameworks ou lógicas customizadas
+                             // formElements[key].dispatchEvent(new Event('input'));
+                        }
+                    }
+                    showMessage('Ficha de atendimento importada com sucesso!');
+                     event.target.value = ''; // Limpa o input file para permitir importar o mesmo arquivo novamente
+                } catch (error) {
+                    console.error("Erro ao importar JSON:", error);
+                    showMessage('Erro ao processar o arquivo JSON.', 'error');
+                     event.target.value = ''; // Limpa o input file mesmo em caso de erro
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function exportAndPrint() {
+            const formData = new FormData(patientForm);
+            const patientData = {};
+
+            formData.forEach((value, key) => {
+                if (value || patientForm.elements[key]?.type === 'select-one') {
+                     patientData[key] = value;
+                }
+            });
+
+            if (Object.keys(patientData).length <= 1) {
+                 showMessage('Não há dados para imprimir!', 'error');
+                 return;
+             }
+
+             displayPatientDataForPrint(patientData);
+            window.print();
+
+             // Esconde o conteúdo de impressão novamente após um pequeno delay para o navegador preparar a impressão
+             setTimeout(() => {
+                 printableContent.style.display = 'none';
+             }, 100); // Pode ajustar o delay se necessário
+
+        }
+
+        function displayPatientDataForPrint(data) {
+            patientDataDisplay.innerHTML = ''; // Limpa o conteúdo anterior
+             // Mapeamento amigável das chaves para rótulos na impressão
+             const friendlyLabels = {
+                 "nome-completo": "Nome Completo",
+                 "data-nascimento": "Data de Nascimento",
+                 "cpf": "CPF",
+                 "rg": "RG",
+                 "endereco": "Endereço",
+                 "telefone": "Telefone",
+                 "email": "Email",
+                 "profissao": "Profissão",
+                 "estado-civil": "Estado Civil",
+                 "area-atendimento": "Área de Atendimento",
+                 "motivo-contato": "Motivo do Contato / Encaminhamento",
+                 "historico-relevante": "Histórico Relevante",
+                 "avaliacao-inicial": "Avaliação Inicial",
+                 "plano-atendimento": "Plano de Atendimento / Conduta",
+                 "observacoes": "Observações Adicionais"
+             };
+
+
+            for (const key in friendlyLabels) { // Itera sobre os rótulos amigáveis para garantir a ordem e todos os campos esperados
+                 const labelText = friendlyLabels[key];
+                 const value = data[key] || "Não informado"; // Pega o valor dos dados, ou "Não informado" se vazio
+
+                 const p = document.createElement('p');
+                 // Usa innerHTML para interpretar quebras de linha em textareas como <br> na exibição HTML para impressão
+                 p.innerHTML = `<strong>${labelText}:</strong> ${value.replace(/\n/g, '<br>')}`;
+                 patientDataDisplay.appendChild(p);
+             }
+
+             // Mostra o conteúdo de impressão (será escondido pelo CSS @media print)
+             printableContent.style.display = 'block';
+        }
+
+
+        // Event Listeners
+        patientForm.addEventListener('submit', salvarFicha);
+        exportButton.addEventListener('click', exportToJson);
+        importFile.addEventListener('change', importFromJson);
+        exportCsvButton.addEventListener('click', exportToCsv);
+
+        // O botão de imprimir agora chama exportAndPrint diretamente via onclick no HTML
+        // Não precisa adicionar um event listener JS para ele aqui.
+
+    </script>
+</body>
+</html>
