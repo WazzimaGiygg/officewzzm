@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documento de Alta Global</title>
+    <link href="https://fonts.googleapis.com/css2?family=Arial:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+         h2 {
+             margin-top: 30px; /* Espaço antes de novos blocos */
+             border-bottom: 1px solid #eee;
+             padding-bottom: 10px;
+             text-align: left;
+         }
+        form {
+            margin-bottom: 20px;
+        }
+        form label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: bold;
+        }
+        form input[type="text"],
+        form input[type="date"],
+        form textarea,
+        form select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+         form input[type="date"] {
+             /* Ajuste para campos de data */
+             padding: 9px; /* Compensa a borda */
+         }
+        form textarea {
+            resize: vertical;
+            height: 120px; /* Um pouco maior para alta */
+        }
+         .form-section {
+             margin-bottom: 30px;
+             padding: 15px;
+             background-color: #f9f9f9;
+             border-radius: 5px;
+             border: 1px solid #eee;
+         }
+          .form-section h2 {
+              margin-top: 0;
+              padding-top: 0;
+              margin-bottom: 15px;
+              border-bottom: none;
+          }
+        form button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+            margin-top: 10px;
+        }
+        form button:hover {
+            background-color: #0056b3;
+        }
+        #export-import-controls {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            gap: 10px; /* Espaço entre os botões */
+             flex-wrap: wrap; /* Permite quebra de linha em telas menores */
+        }
+         #export-import-controls button,
+         #export-import-controls label {
+             flex-grow: 1; /* Permite que os botões cresçam */
+             text-align: center; /* Centraliza o texto/label */
+         }
+        #export-import-controls button,
+        #export-import-controls label {
+            background-color: #28a745;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+        #export-import-controls button:hover,
+        #export-import-controls label:hover {
+            background-color: #218838;
+        }
+        #export-import-controls input[type="file"] {
+            display: none;
+        }
+        #print-button {
+            background-color: #17a2b8;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+            margin: 20px auto 0 auto;
+            display: block;
+            width: 200px;
+            text-align: center;
+        }
+        #print-button:hover {
+            background-color: #138496;
+        }
+        #message-box {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border: 1px solid #c3e6cb;
+            border-radius: 5(Paciente: %nome-completo%)px;
+            margin-bottom: 10px;
+            z-index: 1000;
+            opacity: 1;
+            transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
+        }
+        .message-box.fade-out {
+            opacity: 0;
+            transform: translateX(-50%) translateY(-20px);
+        }
+        .message-box.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border-color: #f5c6cb;
+        }
+
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #printable-content, #printable-content * {
+                visibility: visible;
+            }
+            #printable-content {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                padding: 20px;
+                box-sizing: border-box;
+            }
+             #printable-content h2 {
+                 margin-top: 20px;
+                 margin-bottom: 10px;
+                 padding-bottom: 5px;
+                 border-bottom: 1px solid #ccc;
+             }
+            #printable-content div p {
+                margin-bottom: 8px; /* Espaço menor entre os parágrafos */
+                word-wrap: break-word; /* Quebra palavras longas */
+                 white-space: pre-wrap; /* Mantém formatação de quebra de linha de textarea */
+            }
+             #printable-content strong {
+                 display: inline-block; /* Garante que o label não quebre no meio */
+                 min-width: 150px; /* Ajuste conforme a necessidade para alinhar valores */
+                 vertical-align: top; /* Alinha labels do topo com o conteúdo de textarea */
+             }
+            #print-button, #export-import-controls, form {
+                display: none;
+            }
+            body {
+                background-color: #fff;
+            }
+            .container{
+                box-shadow: none;
+                margin: 0;
+                padding: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Documento de Alta Global</h1>
+
+        <form id="discharge-form">
+
+            <div class="form-section">
+                <h2>Identificação do Usuário/Paciente</h2>
+                <label for="nome-completo-alta">Nome Completo:</label>
+                <input type="text" id="nome-completo-alta" name="nome-completo" required> <label for="data-nascimento-alta">Data de Nascimento:</label>
+                <input type="date" id="data-nascimento-alta" name="data-nascimento" required> <label for="cpf-alta">CPF:</label>
+                <input type="text" id="cpf-alta" name="cpf">
+
+                <label for="rg-alta">RG:</label>
+                <input type="text" id="rg-alta" name="rg">
+            </div>
+
+             <div class="form-section">
+                <h2>Informações do Atendimento</h2>
+                <label for="periodo-atendimento">Período de Atendimento:</label>
+                <input type="text" id="periodo-atendimento" name="periodo-atendimento" placeholder="Ex: DD/MM/AAAA a DD/MM/AAAA ou Mês/Ano a Mês/Ano">
+
+                 <label for="areas-atendimento">Área(s) de Atendimento:</label>
+                 <input type="text" id="areas-atendimento" name="areas-atendimento" placeholder="Ex: Psicologia, Serviço Social">
+
+                <label for="profissional-referencia">Profissional(is) de Referência:</label>
+                <input type="text" id="profissional-referencia" name="profissional-referencia" placeholder="Nome e Área">
+            </div>
+
+             <div class="form-section">
+                 <h2>Síntese do Processo</h2>
+                 <label for="resumo-atendimento">Resumo do Processo de Atendimento (motivo inicial, principais questões trabalhadas, intervenções realizadas, evolução):</label>
+                 <textarea id="resumo-atendimento" name="resumo-atendimento" required></textarea>
+
+                 <label for="status-atual">Situação Atual (no momento da alta):</label>
+                 <textarea id="status-atual" name="status-atual" required></textarea>
+             </div>
+
+             <div class="form-section">
+                 <h2>Informações da Alta</h2>
+                 <label for="data-alta">Data da Alta:</label>
+                 <input type="date" id="data-alta" name="data-alta" required>
+
+                 <label for="motivo-alta">Motivo da Alta:</label>
+                 <textarea id="motivo-alta" name="motivo-alta" required></textarea>
+
+                 <label for="recomendacoes-pos-alta">Recomendações / Orientações Pós-Alta:</label>
+                 <textarea id="recomendacoes-pos-alta" name="recomendacoes-pos-alta"></textarea>
+             </div>
+
+             <div class="form-section">
+                 <h2>Profissional Responsável pelo Documento</h2>
+                 <label for="nome-profissional-alta">Nome:</label>
+                 <input type="text" id="nome-profissional-alta" name="nome-profissional-alta" required>
+
+                  <label for="registro-profissional-alta">Registro Profissional:</label>
+                 <input type="text" id="registro-profissional-alta" name="registro-profissional-alta" placeholder="Ex: CRP 12345, CRESS 6789">
+
+                 <label for="data-documento">Data de Emissão do Documento:</label>
+                 <input type="date" id="data-documento" name="data-documento" required>
+             </div>
+
+
+            <button type="submit">Salvar Documento</button>
+        </form>
+
+        <div id="export-import-controls">
+            <button id="export-button">Exportar para JSON</button>
+            <label for="import-file">Importar de JSON</label>
+            <input type="file" id="import-file" accept=".json">
+            <button id="export-csv-button">Exportar para CSV</button>
+        </div>
+
+        <button id="print-button" onclick="exportAndPrint()">Imprimir Documento de Alta</button>
+
+        <div id="printable-content" style="display: none;">
+            <h1>Documento de Alta Global</h1>
+            <div id="patient-data-display">
+                </div>
+        </div>
+    </div>
+
+    <script>
+        // Reutiliza o ID do formulário, mas pode ser alterado se necessário
+        const dischargeForm = document.getElementById('discharge-form'); // Alterado para discharge-form
+        const exportButton = document.getElementById('export-button');
+        const importFile = document.getElementById('import-file');
+        const messageBox = document.createElement('div');
+        messageBox.id = 'message-box';
+        document.body.appendChild(messageBox); // Adiciona messageBox ao body logo no início
+        const exportCsvButton = document.getElementById('export-csv-button');
+        const printableContent = document.getElementById('printable-content');
+        const patientDataDisplay = document.getElementById('patient-data-display');
+
+        function showMessage(message, type = 'success') {
+            // Re-adiciona a messageBox caso tenha sido removida por um timeout anterior
+            if (!document.getElementById('message-box')) {
+                 const messageBoxElement = document.createElement('div');
+                 messageBoxElement.id = 'message-box';
+                 document.body.appendChild(messageBoxElement);
+            }
+             const currentMessageBox = document.getElementById('message-box');
+            currentMessageBox.textContent = message;
+            currentMessageBox.className = `message-box ${type}`;
+            currentMessageBox.style.opacity = '1'; // Garante que está visível no início
+            currentMessageBox.style.transform = 'translateX(-50%)'; // Garante a posição inicial
+
+            setTimeout(() => {
+                currentMessageBox.classList.add('fade-out');
+                setTimeout(() => {
+                    // Opcional: remover a caixa após a animação para limpar o DOM
+                     if (document.getElementById('message-box')) {
+                         document.getElementById('message-box').remove();
+                     }
+                }, 500); // Tempo da transição fade-out
+            }, 3000); // Tempo antes de começar a desaparecer
+        }
+
+        function salvarDocumentoAlta(event) { // Nome da função alterado
+            event.preventDefault();
+
+            const formData = new FormData(dischargeForm); // Usa o novo ID do formulário
+            const dischargeData = {}; // Nome da variável alterado
+
+            // Coleta todos os campos do formulário usando os 'name' attributes
+            formData.forEach((value, key) => {
+                dischargeData[key] = value;
+            });
+
+            console.log('Dados do Documento de Alta:', dischargeData); // Mensagem alterada
+            showMessage('Documento de alta salvo com sucesso!'); // Mensagem alterada
+            // dischargeForm.reset(); // Opcional: resetar o formulário após salvar
+
+            // Prepara os dados para a área de impressão/visualização
+            displayDocumentDataForPrint(dischargeData); // Chama a função de display atualizada
+        }
+
+        function exportToJson() {
+            const formData = new FormData(dischargeForm); // Usa o novo ID do formulário
+            const dischargeData = {}; // Nome da variável alterado
+
+            formData.forEach((value, key) => {
+                 // Inclui apenas campos com valor preenchido (opcional, pode remover este IF)
+                if (value) { // Alterado de 'value || formElement.type === 'select-one'' pois não há selects com valor padrão não vazio
+                     dischargeData[key] = value;
+                }
+            });
+
+             // Adiciona campos que podem não ser coletados pelo FormData (ex: campos desabilitados, mas não é o caso aqui)
+             // Mas é bom ter em mente se o formulário ficar mais complexo.
+
+            if (Object.keys(dischargeData).length === 0) { // Verifica se há dados
+                 showMessage('Não há dados para exportar!', 'error');
+                 return;
+            }
+
+            const jsonData = JSON.stringify(dischargeData, null, 2);
+            const blob = new Blob([jsonData], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `alta_global_${dischargeData["nome-completo"] ? dischargeData["nome-completo"].replace(/[^a-zA-Z0-9]/g, '_') : 'documento'}.json`; // Nome do arquivo mais descritivo
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showMessage('Documento de alta exportado para JSON com sucesso!'); // Mensagem alterada
+        }
+
+        function exportToCsv() {
+            const formData = new FormData(dischargeForm); // Usa o novo ID do formulário
+            const dischargeData = {}; // Nome da variável alterado
+
+             formData.forEach((value, key) => {
+                 if (value) { // Inclui apenas campos com valor preenchido (opcional)
+                     dischargeData[key] = value;
+                 }
+            });
+
+             if (Object.keys(dischargeData).length === 0) { // Verifica se há dados
+                 showMessage('Não há dados para exportar!', 'error');
+                 return;
+             }
+
+            // Define os cabeçalhos CSV com os novos nomes dos campos para Alta Global
+            const headers = [
+                "Nome Completo", "Data de Nascimento", "CPF", "RG", "Período de Atendimento",
+                "Área(s) de Atendimento", "Profissional(is) de Referência",
+                "Resumo do Processo de Atendimento", "Situação Atual",
+                "Data da Alta", "Motivo da Alta", "Recomendações / Orientações Pós-Alta",
+                "Nome do Profissional Alta", "Registro Profissional", "Data de Emissão do Documento"
+            ];
+
+            // Mapeia as chaves dos dados para a ordem dos cabeçalhos (DEVE corresponder aos 'name' attributes)
+            const keys = [
+                "nome-completo", "data-nascimento", "cpf", "rg", "periodo-atendimento",
+                "areas-atendimento", "profissional-referencia",
+                "resumo-atendimento", "status-atual",
+                "data-alta", "motivo-alta", "recomendacoes-pos-alta",
+                "nome-profissional-alta", "registro-profissional-alta", "data-documento"
+            ];
+
+             let csvContent = headers.join(",") + "\n";
+
+             // Prepara a linha de dados, tratando vírgulas internas e quebras de linha em campos de texto
+             const dataRow = keys.map(key => {
+                 let value = dischargeData[key] || "";
+                 // Envolve o valor em aspas duplas se contiver vírgulas, aspas duplas ou quebras de linha
+                 if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+                     value = '"' + value.replace(/"/g, '""') + '"'; // Escapa aspas duplas
+                 }
+                 return value;
+             }).join(",");
+
+             csvContent += dataRow + "\n";
+
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `alta_global_${dischargeData["nome-completo"] ? dischargeData["nome-completo"].replace(/[^a-zA-Z0-9]/g, '_') : 'documento'}.csv`; // Nome do arquivo mais descritivo
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showMessage('Documento de alta exportado para CSV com sucesso!'); // Mensagem alterada
+        }
+
+
+        function importFromJson(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    const formElements = dischargeForm.elements; // Usa o novo ID do formulário
+
+                    // Opcional: Limpar o formulário antes de importar
+                    // dischargeForm.reset();
+
+                    for (const key in importedData) {
+                        // Verifica se o elemento do formulário existe com o nome correspondente
+                        if (formElements[key]) {
+                             // Limpa campos de texto e textarea antes de preencher para evitar acúmulo de texto
+                            if (formElements[key].type === 'text' || formElements[key].type === 'textarea' || formElements[key].type === 'date' || formElements[key].type === 'select-one') {
+                                formElements[key].value = '';
+                            }
+
+                            // Preenche o valor
+                            formElements[key].value = importedData[key];
+
+                             // Dispara o evento 'change' ou 'input' se necessário para frameworks ou lógicas customizadas
+                             // formElements[key].dispatchEvent(new Event('input'));
+                        }
+                    }
+                    showMessage('Documento de alta importado com sucesso!'); // Mensagem alterada
+                     event.target.value = ''; // Limpa o input file para permitir importar o mesmo arquivo novamente
+                } catch (error) {
+                    console.error("Erro ao importar JSON:", error);
+                    showMessage('Erro ao processar o arquivo JSON.', 'error');
+                     event.target.value = ''; // Limpa o input file mesmo em caso de erro
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function exportAndPrint() {
+            const formData = new FormData(dischargeForm); // Usa o novo ID do formulário
+            const dischargeData = {}; // Nome da variável alterado
+
+            formData.forEach((value, key) => {
+                if (value) { // Inclui apenas campos com valor (opcional)
+                     dischargeData[key] = value;
+                 }
+            });
+
+            if (Object.keys(dischargeData).length === 0) { // Verifica se há dados
+                 showMessage('Não há dados para imprimir!', 'error');
+                 return;
+             }
+
+             displayDocumentDataForPrint(dischargeData) // Chama a função de display atualizada
+            window.print();
+
+             // Esconde o conteúdo de impressão novamente após um pequeno delay para o navegador preparar a impressão
+             setTimeout(() => {
+                 printableContent.style.display = 'none';
+             }, 100); // Pode ajustar o delay se necessário
+
+        }
+
+        function displayDocumentDataForPrint(data) { // Nome da função alterado
+            patientDataDisplay.innerHTML = ''; // Limpa o conteúdo anterior
+             // Mapeamento amigável das chaves para rótulos na impressão para Alta Global
+             const friendlyLabels = {
+                 "nome-completo": "Nome Completo",
+                 "data-nascimento": "Data de Nascimento",
+                 "cpf": "CPF",
+                 "rg": "RG",
+                 "periodo-atendimento": "Período de Atendimento",
+                 "areas-atendimento": "Área(s) de Atendimento",
+                 "profissional-referencia": "Profissional(is) de Referência",
+                 "resumo-atendimento": "Resumo do Processo de Atendimento",
+                 "status-atual": "Situação Atual (no momento da alta)",
+                 "data-alta": "Data da Alta",
+                 "motivo-alta": "Motivo da Alta",
+                 "recomendacoes-pos-alta": "Recomendações / Orientações Pós-Alta",
+                 "nome-profissional-alta": "Nome do Profissional Responsável pela Alta",
+                 "registro-profissional-alta": "Registro Profissional",
+                 "data-documento": "Data de Emissão do Documento"
+             };
+
+            // Adiciona seções ou apenas itera pelos campos
+            // Podemos adicionar títulos de seção para melhor organização na impressão
+            const sections = {
+                "Identificação do Usuário/Paciente": ["nome-completo", "data-nascimento", "cpf", "rg"],
+                "Informações do Atendimento": ["periodo-atendimento", "areas-atendimento", "profissional-referencia"],
+                "Síntese do Processo": ["resumo-atendimento", "status-atual"],
+                "Informações da Alta": ["data-alta", "motivo-alta", "recomendacoes-pos-alta"],
+                "Profissional Responsável pelo Documento": ["nome-profissional-alta", "registro-profissional-alta", "data-documento"]
+            };
+
+            for (const sectionTitle in sections) {
+                const sectionKeys = sections[sectionTitle];
+                const sectionDiv = document.createElement('div');
+                sectionDiv.innerHTML = `<h2>${sectionTitle}</h2>`;
+
+                sectionKeys.forEach(key => {
+                     const labelText = friendlyLabels[key];
+                     const value = data[key] || "Não informado"; // Pega o valor dos dados, ou "Não informado" se vazio
+
+                     const p = document.createElement('p');
+                     // Usa innerHTML para interpretar quebras de linha em textareas como <br> na exibição HTML para impressão
+                     p.innerHTML = `<strong>${labelText}:</strong> ${value.replace(/\n/g, '<br>')}`;
+                     sectionDiv.appendChild(p);
+                });
+                patientDataDisplay.appendChild(sectionDiv);
+            }
+
+
+             // Mostra o conteúdo de impressão (será escondido pelo CSS @media print)
+             printableContent.style.display = 'block';
+        }
+
+
+        // Event Listeners
+        dischargeForm.addEventListener('submit', salvarDocumentoAlta); // Usa o novo nome da função
+        exportButton.addEventListener('click', exportToJson);
+        importFile.addEventListener('change', importFromJson);
+        exportCsvButton.addEventListener('click', exportToCsv);
+
+        // O botão de imprimir já chama exportAndPrint diretamente via onclick no HTML
+        // Não precisa adicionar um event listener JS para ele aqui.
+
+         // Opcional: Função para preencher a data de emissão automaticamente ao abrir o formulário
+         window.addEventListener('load', () => {
+             const today = new Date();
+             const dd = String(today.getDate()).padStart(2, '0');
+             const mm = String(today.getMonth() + 1).padStart(2, '0'); // Janeiro é 0!
+             const yyyy = today.getFullYear();
+             const todayFormatted = yyyy + '-' + mm + '-' + dd;
+             document.getElementById('data-documento').value = todayFormatted;
+         });
+
+
+    </script>
+</body>
+</html>
