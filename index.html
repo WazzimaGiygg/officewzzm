@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>2005A - WZZM Office Online</title>
+    <title>B5 WZZM Office Online</title>
     <link rel="icon" href="favicom.png" type="image/x-icon">
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
@@ -65,11 +65,12 @@
             font-size: 17px;
         }
 
-        .tab-button:hover:not(.disabled) {
+        /* Removi o :not(.disabled) do hover e active para simplificar */
+        .tab-button:hover {
             background-color: #ddd;
         }
 
-        .tab-button.active:not(.disabled) {
+        .tab-button.active {
             background-color: #ccc;
         }
 
@@ -79,6 +80,12 @@
             opacity: 0.6;
             background-color: #e0e0e0;
         }
+        /* Garantir que o hover e active não funcionem em desabilitados */
+        .tab-button.disabled:hover,
+        .tab-button.disabled.active {
+             background-color: #e0e0e0; /* Mantém a cor de fundo desabilitada */
+        }
+
 
         .tab-content {
             display: none;
@@ -119,15 +126,15 @@
     </div>
 
     <div class="tab-bar" id="main-tab-bar">
-        <button class="tab-button active" onclick="openTab('editor')">WZZM Editor de Texto Online</button>
-        <button class="tab-button" onclick="openTab('calculadora')">Calculadora WZZM Online</button>
-        <button class="tab-button" onclick="openTab('clinica')">WZZM Clínica Online</button>
-        <button class="tab-button" onclick="openTab('planilha')">WZZM Planilha Online</button>
-        <button class="tab-button" onclick="openTab('quebrador')">Quebrador de Imagem</button>
+        <button class="tab-button" data-tab-name="editor">WZZM Editor de Texto Online</button>
+        <button class="tab-button" data-tab-name="calculadora">Calculadora WZZM Online</button>
+        <button class="tab-button" data-tab-name="clinica">WZZM Clínica Online</button>
+        <button class="tab-button" data-tab-name="planilha">WZZM Planilha Online</button>
+        <button class="tab-button" data-tab-name="quebrador">Quebrador de Imagem</button>
     </div>
 
     <div id="main-content" style="display: none;">
-        <div id="editor" class="tab-content active">
+        <div id="editor" class="tab-content">
             <iframe src="./editor.html"></iframe>
         </div>
 
@@ -167,8 +174,8 @@
         // Inicialize o Firebase
         const app = firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
-        const firestore = firebase.firestore(); // Mantenha, caso use para algo no futuro
-        const analytics = firebase.analytics(); // Mantenha, caso use para algo no futuro
+        const firestore = firebase.firestore();
+        const analytics = firebase.analytics();
 
         // Elementos da UI
         const loginButton = document.getElementById('login-button');
@@ -176,40 +183,55 @@
         const userInfo = document.getElementById('user-info');
         const mainContent = document.getElementById('main-content');
         const accessDeniedMessage = document.getElementById('access-denied-message');
-        const tabButtons = document.getElementsByClassName('tab-button');
+        const tabButtons = document.querySelectorAll('.tab-button'); // Usar querySelectorAll
 
         function openTab(tabName) {
-            // Apenas permite abrir abas se o usuário estiver logado
+            // Esta verificação já é feita a nível do listener, mas é bom manter aqui
             if (!auth.currentUser) {
-                console.warn("Acesso negado: Usuário não logado.");
+                console.warn("Acesso negado: Usuário não logado. A aba não pode ser aberta.");
                 return;
             }
 
-            var i, tabcontent, tabbuttonsElements;
-            tabcontent = document.getElementsByClassName("tab-content");
-            for (i = 0; i < tabcontent.length; i++) {
-                tabcontent[i].classList.remove("active");
-            }
-            tabbuttonsElements = document.getElementsByClassName("tab-button");
-            for (i = 0; i < tabbuttonsElements.length; i++) {
-                tabbuttonsElements[i].classList.remove("active");
-            }
+            // Oculta todos os conteúdos das abas
+            const tabContents = document.querySelectorAll(".tab-content");
+            tabContents.forEach(content => {
+                content.classList.remove("active");
+            });
+
+            // Remove a classe 'active' de todos os botões de abas
+            tabButtons.forEach(button => {
+                button.classList.remove("active");
+            });
+
+            // Adiciona a classe 'active' ao conteúdo da aba selecionada
             document.getElementById(tabName).classList.add("active");
-            document.querySelector('.tab-bar button[onclick="openTab(\'' + tabName + '\')"]').classList.add("active");
+
+            // Adiciona a classe 'active' ao botão da aba selecionada
+            document.querySelector(`.tab-button[data-tab-name="${tabName}"]`).classList.add("active");
         }
 
         // Função para desabilitar/habilitar todas as abas
         function setTabsEnabled(enabled) {
-            for (let i = 0; i < tabButtons.length; i++) {
+            tabButtons.forEach(button => {
                 if (enabled) {
-                    tabButtons[i].classList.remove('disabled');
-                    tabButtons[i].removeAttribute('disabled');
+                    button.classList.remove('disabled');
+                    button.removeAttribute('disabled');
                 } else {
-                    tabButtons[i].classList.add('disabled');
-                    tabButtons[i].setAttribute('disabled', 'true');
+                    button.classList.add('disabled');
+                    button.setAttribute('disabled', 'true');
                 }
-            }
+            });
         }
+
+        // Adicionar event listeners aos botões das abas
+        // Isso é mais robusto do que onclick inline e permite controle via JS
+        tabButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const tabName = this.dataset.tabName; // Pega o nome da aba do atributo data-tab-name
+                openTab(tabName);
+            });
+        });
+
 
         // Listener de estado de autenticação
         auth.onAuthStateChanged(user => {
@@ -221,10 +243,25 @@
                 mainContent.style.display = 'block'; // Mostra o conteúdo principal
                 accessDeniedMessage.style.display = 'none'; // Oculta a mensagem de acesso negado
                 setTabsEnabled(true); // Habilita as abas
-                // Carrega a primeira aba se ainda não houver uma ativa
-                if (document.querySelector('.tab-content.active') === null) {
-                    openTab('editor'); // Carrega a aba padrão após o login
+
+                // Ativar a primeira aba por padrão após o login, se nenhuma estiver ativa
+                const activeTabContent = document.querySelector('.tab-content.active');
+                if (!activeTabContent) {
+                    // Encontra o nome da primeira aba e a ativa
+                    const firstTabName = tabButtons[0]?.dataset.tabName;
+                    if (firstTabName) {
+                        openTab(firstTabName);
+                    }
                 }
+                 // Ativar o botão da primeira aba se não houver um ativo
+                const activeTabButton = document.querySelector('.tab-button.active');
+                if (!activeTabButton) {
+                    if (tabButtons.length > 0) {
+                        tabButtons[0].classList.add('active');
+                    }
+                }
+
+
             } else {
                 // Usuário não logado
                 userInfo.textContent = '';
@@ -233,6 +270,14 @@
                 mainContent.style.display = 'none'; // Oculta o conteúdo principal
                 accessDeniedMessage.style.display = 'block'; // Mostra a mensagem de acesso negado
                 setTabsEnabled(false); // Desabilita as abas
+
+                // Remove a classe 'active' de todas as abas e botões ao deslogar
+                document.querySelectorAll(".tab-content").forEach(content => {
+                    content.classList.remove("active");
+                });
+                tabButtons.forEach(button => {
+                    button.classList.remove("active");
+                });
             }
         });
 
@@ -242,7 +287,7 @@
             auth.signInWithPopup(provider)
                 .then((result) => {
                     console.log("Usuário logado:", result.user);
-                    // Não é necessário redirecionar, o onAuthStateChanged já cuida da UI
+                    // o onAuthStateChanged já cuidará da atualização da UI
                 })
                 .catch((error) => {
                     console.error("Erro de login:", error);
@@ -262,10 +307,12 @@
 
         // Garante que a primeira aba seja carregada ao iniciar a página se o usuário já estiver logado
         // Isso é importante para o caso de o usuário já estar logado e a página ser recarregada
+        // E também para garantir que as abas estejam no estado correto no carregamento inicial
         document.addEventListener('DOMContentLoaded', () => {
-            if (auth.currentUser) {
-                openTab('editor');
-            }
+            // Não é necessário chamar openTab aqui, pois o onAuthStateChanged já faz isso
+            // ao detectar um usuário logado.
+            // Apenas certifique-se de que o estado inicial dos botões esteja correto.
+            setTabsEnabled(false); // Inicia desabilitado por padrão
         });
     </script>
 
