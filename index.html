@@ -3,8 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WZZM Office Online</title>
+    <title>2005A - WZZM Office Online</title>
     <link rel="icon" href="favicom.png" type="image/x-icon">
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-analytics-compat.js"></script>
     <style>
         body {
             font-family: sans-serif;
@@ -12,9 +16,42 @@
             padding: 0;
         }
 
+        /* Estilos para a barra de login no topo */
+        .login-bar {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            background-color: #3f51b5; /* Cor de cabeçalho Material Design */
+            color: white;
+            padding: 10px 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .login-bar span {
+            margin-right: 15px;
+            font-weight: bold;
+        }
+
+        .login-bar button {
+            background-color: #ff4081; /* Cor de destaque Material Design */
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-left: 10px;
+            transition: background-color 0.3s ease;
+        }
+
+        .login-bar button:hover {
+            background-color: #e0005e;
+        }
+
         .tab-bar {
             background-color: #f0f0f0;
             overflow: hidden;
+            border-bottom: 1px solid #ccc;
         }
 
         .tab-button {
@@ -28,12 +65,19 @@
             font-size: 17px;
         }
 
-        .tab-button:hover {
+        .tab-button:hover:not(.disabled) {
             background-color: #ddd;
         }
 
-        .tab-button.active {
+        .tab-button.active:not(.disabled) {
             background-color: #ccc;
+        }
+
+        /* Estilo para botões desabilitados */
+        .tab-button.disabled {
+            cursor: not-allowed;
+            opacity: 0.6;
+            background-color: #e0e0e0;
         }
 
         .tab-content {
@@ -41,6 +85,9 @@
             padding: 20px;
             border: 1px solid #ccc;
             border-top: none;
+            /* Garante que o iframe ocupe o espaço */
+            display: flex;
+            flex-direction: column;
         }
 
         .tab-content.active {
@@ -49,14 +96,29 @@
 
         iframe {
             width: 100%;
-            height: 500px;
+            height: calc(100vh - 150px); /* Ajuste a altura para considerar a barra de login e a barra de abas */
             border: none;
+            min-height: 500px; /* Garante uma altura mínima */
+        }
+
+        /* Estilo para a mensagem de acesso negado */
+        #access-denied-message {
+            text-align: center;
+            padding: 50px;
+            font-size: 20px;
+            color: #666;
         }
     </style>
 </head>
 <body>
 
-    <div class="tab-bar">
+    <div class="login-bar">
+        <span id="user-info"></span>
+        <button id="login-button" style="display: none;">Login com Google</button>
+        <button id="logout-button" style="display: none;">Sair</button>
+    </div>
+
+    <div class="tab-bar" id="main-tab-bar">
         <button class="tab-button active" onclick="openTab('editor')">WZZM Editor de Texto Online</button>
         <button class="tab-button" onclick="openTab('calculadora')">Calculadora WZZM Online</button>
         <button class="tab-button" onclick="openTab('clinica')">WZZM Clínica Online</button>
@@ -64,40 +126,147 @@
         <button class="tab-button" onclick="openTab('quebrador')">Quebrador de Imagem</button>
     </div>
 
-    <div id="editor" class="tab-content active">
-        <iframe src="./editor.html"></iframe>
+    <div id="main-content" style="display: none;">
+        <div id="editor" class="tab-content active">
+            <iframe src="./editor.html"></iframe>
+        </div>
+
+        <div id="calculadora" class="tab-content">
+            <iframe src="calculadora.html"></iframe>
+        </div>
+
+        <div id="clinica" class="tab-content">
+            <iframe src="clinica.html"></iframe>
+        </div>
+
+        <div id="planilha" class="tab-content">
+            <iframe src="panilhas.html"></iframe>
+        </div>
+
+        <div id="quebrador" class="tab-content">
+            <iframe src="quebradordeimagem.html"></iframe>
+        </div>
     </div>
 
-    <div id="calculadora" class="tab-content">
-        <iframe src="calculadora.html"></iframe>
-    </div>
-
-    <div id="clinica" class="tab-content">
-        <iframe src="clinica.html"></iframe>
-    </div>
-
-    <div id="planilha" class="tab-content">
-        <iframe src="panilhas.html"></iframe>
-    </div>
-
-    <div id="quebrador" class="tab-content">
-        <iframe src="quebradordeimagem.html"></iframe>
+    <div id="access-denied-message" style="display: block;">
+        Você precisa estar logado para acessar as ferramentas do WZZM Office Online.
     </div>
 
     <script>
+        // --- Configuração do Firebase ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyB9GkSqTIZ0kbVsba_WOdQeVAETrF9qna0",
+            authDomain: "wzzm-ce3fc.firebaseapp.com", // Mantenha o domínio raiz
+            projectId: "wzzm-ce3fc",
+            storageBucket: "wzzm-ce3fc.firebasestorage.app",
+            messagingSenderId: "249427877153",
+            appId: "1:249427877153:web:0e4297294794a5aadeb260",
+            measurementId: "G-PLKNZNFCQ8"
+        };
+
+        // Inicialize o Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const firestore = firebase.firestore(); // Mantenha, caso use para algo no futuro
+        const analytics = firebase.analytics(); // Mantenha, caso use para algo no futuro
+
+        // Elementos da UI
+        const loginButton = document.getElementById('login-button');
+        const logoutButton = document.getElementById('logout-button');
+        const userInfo = document.getElementById('user-info');
+        const mainContent = document.getElementById('main-content');
+        const accessDeniedMessage = document.getElementById('access-denied-message');
+        const tabButtons = document.getElementsByClassName('tab-button');
+
         function openTab(tabName) {
-            var i, tabcontent, tabbuttons;
+            // Apenas permite abrir abas se o usuário estiver logado
+            if (!auth.currentUser) {
+                console.warn("Acesso negado: Usuário não logado.");
+                return;
+            }
+
+            var i, tabcontent, tabbuttonsElements;
             tabcontent = document.getElementsByClassName("tab-content");
             for (i = 0; i < tabcontent.length; i++) {
                 tabcontent[i].classList.remove("active");
             }
-            tabbuttons = document.getElementsByClassName("tab-button");
-            for (i = 0; i < tabbuttons.length; i++) {
-                tabbuttons[i].classList.remove("active");
+            tabbuttonsElements = document.getElementsByClassName("tab-button");
+            for (i = 0; i < tabbuttonsElements.length; i++) {
+                tabbuttonsElements[i].classList.remove("active");
             }
             document.getElementById(tabName).classList.add("active");
             document.querySelector('.tab-bar button[onclick="openTab(\'' + tabName + '\')"]').classList.add("active");
         }
+
+        // Função para desabilitar/habilitar todas as abas
+        function setTabsEnabled(enabled) {
+            for (let i = 0; i < tabButtons.length; i++) {
+                if (enabled) {
+                    tabButtons[i].classList.remove('disabled');
+                    tabButtons[i].removeAttribute('disabled');
+                } else {
+                    tabButtons[i].classList.add('disabled');
+                    tabButtons[i].setAttribute('disabled', 'true');
+                }
+            }
+        }
+
+        // Listener de estado de autenticação
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                // Usuário logado
+                userInfo.textContent = `Olá, ${user.displayName || user.email}!`;
+                loginButton.style.display = 'none';
+                logoutButton.style.display = 'inline-block';
+                mainContent.style.display = 'block'; // Mostra o conteúdo principal
+                accessDeniedMessage.style.display = 'none'; // Oculta a mensagem de acesso negado
+                setTabsEnabled(true); // Habilita as abas
+                // Carrega a primeira aba se ainda não houver uma ativa
+                if (document.querySelector('.tab-content.active') === null) {
+                    openTab('editor'); // Carrega a aba padrão após o login
+                }
+            } else {
+                // Usuário não logado
+                userInfo.textContent = '';
+                loginButton.style.display = 'inline-block';
+                logoutButton.style.display = 'none';
+                mainContent.style.display = 'none'; // Oculta o conteúdo principal
+                accessDeniedMessage.style.display = 'block'; // Mostra a mensagem de acesso negado
+                setTabsEnabled(false); // Desabilita as abas
+            }
+        });
+
+        // Evento de clique para o botão de Login
+        loginButton.addEventListener('click', () => {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            auth.signInWithPopup(provider)
+                .then((result) => {
+                    console.log("Usuário logado:", result.user);
+                    // Não é necessário redirecionar, o onAuthStateChanged já cuida da UI
+                })
+                .catch((error) => {
+                    console.error("Erro de login:", error);
+                    alert(`Erro ao fazer login: ${error.message}`);
+                });
+        });
+
+        // Evento de clique para o botão de Logout
+        logoutButton.addEventListener('click', () => {
+            auth.signOut().then(() => {
+                console.log("Usuário deslogado.");
+            }).catch((error) => {
+                console.error("Erro ao fazer logout:", error);
+                alert(`Erro ao fazer logout: ${error.message}`);
+            });
+        });
+
+        // Garante que a primeira aba seja carregada ao iniciar a página se o usuário já estiver logado
+        // Isso é importante para o caso de o usuário já estar logado e a página ser recarregada
+        document.addEventListener('DOMContentLoaded', () => {
+            if (auth.currentUser) {
+                openTab('editor');
+            }
+        });
     </script>
 
 </body>
