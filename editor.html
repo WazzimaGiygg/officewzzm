@@ -554,101 +554,68 @@
             hideLinkDialog();
         }
 
-        async function saveAllDocumentsToFirebase() {
-            if (!currentUserUid) {
-                alert("Você precisa estar logado no WZZM Office para salvar documentos.");
-                return;
-            }
+       async function saveAllDocumentsToFirebase() {
+    if (!currentUserUid) {
+        console.error("UID do usuário não está disponível para salvar documentos.");
+        displayMessage("Erro: Não logado. Faça login para salvar.", true);
+        return;
+    }
 
-            const tabElements = document.querySelectorAll('#tab-container .tab');
-            if (tabElements.length === 0) {
-                alert("Não há documentos para salvar.");
-                return;
-            }
+    const docData = {
+        title: currentDocument.title,
+        content: currentDocument.content,
+        ownerId: currentUserUid, // <-- Adicione este campo
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
 
-            const batch = db.batch();
-            const userDocumentsRef = db.collection('docoffice').doc(currentUserUid).collection('documents');
+    const myDocumentsCollectionRef = db.collection('myDocuments'); // <-- Mude para a nova coleção
 
-            for (const tabElement of tabElements) {
-                const tabId = tabElement.getAttribute('data-tab-id');
-                const nameInput = tabElement.querySelector('input[type="text"]');
-                const contentEditor = document.getElementById(tabId.replace('tab', 'editor'));
-
-                if (nameInput && contentEditor) {
-                    const docName = nameInput.value;
-                    const docContent = contentEditor.innerHTML;
-                    const timestamp = firebase.firestore.FieldValue.serverTimestamp();
-
-                    let docRef;
-                    const existingDocId = tabToDocIdMap.get(tabId);
-
-                    if (existingDocId) {
-                        docRef = userDocumentsRef.doc(existingDocId);
-                        batch.update(docRef, {
-                            name: docName,
-                            content: docContent,
-                            updatedAt: timestamp
-                        });
-                    } else {
-                        docRef = userDocumentsRef.doc();
-                        batch.set(docRef, {
-                            name: docName,
-                            content: docContent,
-                            createdAt: timestamp,
-                            updatedAt: timestamp
-                        });
-                        tabToDocIdMap.set(tabId, docRef.id);
-                    }
-                }
-            }
-
-            try {
-                await batch.commit();
-                alert("Todos os documentos salvos no Firebase com sucesso!");
-            } catch (error) {
-                console.error("Erro ao salvar documentos no Firebase:", error);
-                alert("Erro ao salvar documentos no Firebase.");
-            }
+    try {
+        if (currentDocument.id) {
+            await myDocumentsCollectionRef.doc(currentDocument.id).update(docData);
+            displayMessage("Documento atualizado com sucesso!");
+        } else {
+            const newDocRef = await myDocumentsCollectionRef.add({
+                ...docData,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            currentDocument.id = newDocRef.id; // Atualiza o ID para o novo documento
+            displayMessage("Novo documento salvo com sucesso!");
         }
+    } catch (error) {
+        console.error("Erro ao salvar documentos no Firebase:", error);
+        displayMessage("Erro ao salvar: " + error.message, true);
+    }
+}
 
         async function loadAllDocumentsFromFirebase() {
-            if (!currentUserUid) {
-                alert("Você precisa estar logado no WZZM Office para carregar documentos.");
-                return;
-            }
+    if (!currentUserUid) {
+        console.error("UID do usuário não está disponível para carregar documentos.");
+        displayMessage("Erro: Não logado. Faça login para carregar.", true);
+        return;
+    }
 
-            try {
-                // Clear existing tabs and editors
-                document.getElementById('tab-container').innerHTML = '';
-                document.getElementById('content-container').innerHTML = '';
-                tabCounter = 1;
-                activeTabId = null;
-                tabToDocIdMap.clear();
+    const myDocumentsCollectionRef = db.collection('myDocuments'); // <-- Mude para a nova coleção
 
-                const userDocumentsRef = db.collection('docoffice').doc(currentUserUid).collection('documents');
-                const querySnapshot = await userDocumentsRef.orderBy('updatedAt', 'desc').get();
+    try {
+        // Filtra por ownerId para carregar apenas os documentos do usuário logado
+        const querySnapshot = await myDocumentsCollectionRef
+            .where('ownerId', '==', currentUserUid) // <-- Adicione este filtro
+            .orderBy('updatedAt', 'desc')
+            .get();
 
-                if (querySnapshot.empty) {
-                    alert("Nenhum documento encontrado no Firebase para este usuário. Adicione um novo documento.");
-                    addTab();
-                    return;
-                }
+        const loadedDocuments = [];
+        querySnapshot.forEach(doc => {
+            loadedDocuments.push({ id: doc.id, ...doc.data() });
+        });
 
-                querySnapshot.forEach(doc => {
-                    const data = doc.data();
-                    addTab(data.name, data.content, doc.id);
-                });
+        // ... (restante do seu código para exibir os documentos) ...
 
-                if (document.querySelectorAll('#tab-container .tab').length > 0 && !activeTabId) {
-                    switchTab(document.querySelectorAll('#tab-container .tab')[0].getAttribute('data-tab-id'));
-                }
-                alert("Documentos carregados do Firebase com sucesso!");
-
-            } catch (error) {
-                console.error("Erro ao carregar documentos do Firebase:", error);
-                alert("Erro ao carregar documentos do Firebase.");
-            }
-        }
+    } catch (error) {
+        console.error("Erro ao carregar documentos do Firebase:", error);
+        displayMessage("Erro ao carregar: " + error.message, true);
+    }
+}
 
         // Inicializa o estado do editor e adiciona a primeira aba vazia
         document.addEventListener('DOMContentLoaded', () => {
