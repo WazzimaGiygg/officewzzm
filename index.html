@@ -30,7 +30,7 @@
             font-size: 24px;
         }
 
-        /* Removida a seção de login/logout do cabeçalho do index.html */
+        /* Removida a seção de login/logout do cabeçalho do index.html - não precisamos mais dela aqui */
         .login-section {
             display: none; /* Oculta a seção de login/logout no header do index */
         }
@@ -62,7 +62,6 @@
             background-color: #ccc;
         }
 
-        /* Removida a classe disabled, pois o acesso é liberado, e a autenticação ocorre dentro do iframe */
         main {
             flex-grow: 1;
             padding: 20px;
@@ -87,10 +86,8 @@
 
     <header class="header-bar">
         <h1>WZZM Office Online - Beta 234</h1>
-        <div class="login-section">
-            <span id="user-info"></span>
-            <button id="login-button" style="display: none;">Login com Google</button>
-            <button id="logout-button" style="display: none;">Sair</button>
+        <div id="auth-status-parent" style="color: white; font-weight: bold;">
+            Carregando status de autenticação...
         </div>
     </header>
 
@@ -105,16 +102,51 @@
     <main>
         <div id="content-area">
             <iframe id="contentFrame" src="about:blank"></iframe>
-            </div>
+        </div>
     </main>
 
     <p style="text-align: center;">Site administrador pela <a href="https://wzzm.org" target="_blank">Wiki Zone Zero Mod</a></p>
     <p style="text-align: center;">&nbsp;</p>
 
-    <script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script> <script>
+        // Sua configuração do Firebase (a mesma do editor.html)
+        const firebaseConfig = {
+            apiKey: "AIzaSyB9GkSqTIZ0kbVsba_WOdQeVAETrF9qna0",
+            authDomain: "wzzm-ce3fc.firebaseapp.com",
+            projectId: "wzzm-ce3fc",
+            storageBucket: "wzzm-ce3fc.appspot.com",
+            messagingSenderId: "249427877153",
+            appId: "1:249427877153:web:0e4297294794a5aadeb260",
+            measurementId: "G-PLKNZNFCQ8"
+        };
+
+        // Inicializa o Firebase e o Auth no arquivo pai
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+
         // Elementos da UI
         const contentFrame = document.getElementById('contentFrame');
         const navLinks = document.querySelectorAll('.nav-link');
+        const authStatusParent = document.getElementById('auth-status-parent'); // Novo elemento para exibir status de auth
+
+        // Variável para armazenar o UID do usuário logado
+        let currentParentUserUid = null;
+
+        // Listener para o estado de autenticação do Firebase no arquivo pai
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                currentParentUserUid = user.uid;
+                console.log("Usuário logado no pai:", user.email, "UID:", currentParentUserUid);
+                authStatusParent.textContent = `Logado como: ${user.email}`;
+            } else {
+                currentParentUserUid = null;
+                console.log("Nenhum usuário logado no pai.");
+                authStatusParent.textContent = "Não logado";
+            }
+            // Sempre que o estado de autenticação mudar, poste a mensagem para o iframe atual
+            postAuthUidToIframe();
+        });
 
         // Função para carregar a página no iframe
         function loadPage(pageSrc) {
@@ -127,6 +159,30 @@
                     link.classList.remove('active');
                 }
             });
+            // Adiciona um listener para quando o iframe carregar
+            // para que possamos enviar o UID. Isso é importante para garantir que o iframe
+            // esteja pronto para receber a mensagem.
+            contentFrame.onload = () => {
+                postAuthUidToIframe();
+            };
+        }
+
+        // Função para enviar o UID para o iframe
+        function postAuthUidToIframe() {
+            // Verifique se o iframe está carregado e se tem um contentWindow válido
+            if (contentFrame.contentWindow) {
+                const targetOrigin = window.location.origin; // Assume que o iframe está no mesmo domínio
+                // Ou defina a origem exata se o iframe for de um domínio diferente, como 'https://office.wzzm.org'
+                // const targetOrigin = 'https://office.wzzm.org'; // Se o editor.html estiver neste domínio
+
+                contentFrame.contentWindow.postMessage(
+                    { type: 'AUTH_UID', uid: currentParentUserUid },
+                    targetOrigin
+                );
+                console.log("UID enviado para o iframe:", currentParentUserUid ? currentParentUserUid : 'NULO');
+            } else {
+                console.warn("Iframe ainda não está pronto para receber mensagens.");
+            }
         }
 
         // Adiciona event listeners aos links de navegação
