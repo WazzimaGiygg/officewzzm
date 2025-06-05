@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Editor de Documentos com Abas</title>
     <style>
+        /* Mantenha seus estilos CSS aqui (copie e cole os estilos que você já tem) */
         body {
             font-family: 'Arial', sans-serif;
             line-height: 1.6;
@@ -220,7 +221,7 @@
 
         <button id="add-tab-btn" onclick="addTab()">Adicionar Aba</button>
         <button id="load-firebase-btn" onclick="loadAllDocumentsFromFirebase()">Carregar Documentos</button>
-        <button id="save-firebase-btn" onclick="saveAllDocumentsToFirebase()">Salvar no Firebase</button>
+        <button id="save-firebase-btn" onclick="saveActiveTabToFirebase()">Salvar Aba Ativa</button>
         <button id="google-login-btn" onclick="signInWithGoogle()">
             <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google icon"> Login com Google
         </button>
@@ -245,7 +246,8 @@
 
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script> <script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script>
         // Your Firebase configuration (manter a mesma configuração do index.html)
         const firebaseConfig = {
             apiKey: "AIzaSyB9GkSqTIZ0kbVsba_WOdQeVAETrF9qna0",
@@ -273,9 +275,6 @@
             const provider = new firebase.auth.GoogleAuthProvider();
             try {
                 await auth.signInWithPopup(provider);
-                // O listener de `onAuthStateChanged` em `index.html` (ou o pai)
-                // se encarregará de enviar o UID para este iframe,
-                // que por sua vez, chamará updateEditorUI.
                 alert("Login com Google realizado com sucesso!");
             } catch (error) {
                 console.error("Erro durante o login com Google:", error);
@@ -287,15 +286,12 @@
         function updateEditorUI(loggedIn) {
             if (loggedIn) {
                 editorStatusMessage.style.display = 'none'; // Oculta a mensagem de status
-                // Habilita os botões de salvar/carregar
                 saveButton.disabled = false;
                 loadButton.disabled = false;
                 if (googleLoginBtn) googleLoginBtn.style.display = 'none'; // Esconde o botão de login
             } else {
-                // Mostra a mensagem de "deslogado"
                 editorStatusMessage.textContent = "Você precisa estar logado no WZZM Office para salvar/carregar documentos.";
                 editorStatusMessage.style.display = 'block';
-                // Desabilita os botões de salvar/carregar
                 saveButton.disabled = true;
                 loadButton.disabled = true;
                 if (googleLoginBtn) googleLoginBtn.style.display = 'inline-flex'; // Mostra o botão de login
@@ -334,19 +330,24 @@
 
         let tabCounter = 1;
         let activeTabId = null;
-        const tabToDocIdMap = new Map();
+        // Map para armazenar a relação entre tabId do DOM e docId do Firebase
+        const tabToDocIdMap = new Map(); // tabId -> Firebase docId
+        // Map para armazenar o conteúdo das abas na memória enquanto não são salvas
+        const tabContents = new Map(); // tabId -> { title: "...", content: "..." }
 
         function addTab(name = `Documento ${tabCounter}`, content = "", docId = null) {
             const tabContainer = document.getElementById('tab-container');
             const contentContainer = document.getElementById('content-container');
 
-            // Primeiro, verifique se já existe um editor ativo e salve seu conteúdo antes de mudar
+            // Salva o conteúdo da aba atualmente ativa antes de criar uma nova
             if (activeTabId) {
                 const currentEditor = document.getElementById(activeTabId.replace('tab', 'editor'));
                 if (currentEditor) {
-                    // Aqui você pode adicionar uma lógica para salvar automaticamente
-                    // Ou apenas garantir que o conteúdo não seja perdido ao mudar
-                    // No momento, apenas removemos o active, o conteúdo permanece no DOM
+                    const currentTabTitleInput = document.querySelector(`.tab[data-tab-id="${activeTabId}"] input[type="text"]`);
+                    tabContents.set(activeTabId, {
+                        title: currentTabTitleInput ? currentTabTitleInput.value : `Documento ${activeTabId.split('-')[1]}`,
+                        content: currentEditor.innerHTML
+                    });
                 }
             }
 
@@ -362,7 +363,7 @@
                 <span class="close-tab" onclick="deleteTab('${tabId}', event)">&times;</span>
             `;
             tabDiv.addEventListener('click', (event) => {
-                if (!event.target.classList.contains('close-tab')) {
+                if (!event.target.classList.contains('close-tab') && !event.target.tagName === 'INPUT') {
                     switchTab(tabId);
                 }
             });
@@ -376,19 +377,31 @@
             editorDiv.innerHTML = content;
             contentContainer.appendChild(editorDiv);
 
+            // Armazena o ID do Firebase se fornecido
             if (docId) {
                 tabToDocIdMap.set(tabId, docId);
             } else {
-                tabToDocIdMap.delete(tabId);
+                tabToDocIdMap.delete(tabId); // Garante que novas abas não tenham um docId associado até serem salvas
             }
+            tabContents.set(tabId, { title: name, content: content }); // Inicializa o conteúdo na memória
 
-            if (!activeTabId || tabContainer.children.length === 1) {
-                switchTab(tabId);
-            }
+            switchTab(tabId); // Ativa a nova aba
             tabCounter++;
         }
 
         function switchTab(tabId) {
+            // Salva o conteúdo da aba anterior antes de mudar
+            if (activeTabId) {
+                const currentEditor = document.getElementById(activeTabId.replace('tab', 'editor'));
+                if (currentEditor) {
+                    const currentTabTitleInput = document.querySelector(`.tab[data-tab-id="${activeTabId}"] input[type="text"]`);
+                    tabContents.set(activeTabId, {
+                        title: currentTabTitleInput ? currentTabTitleInput.value : `Documento ${activeTabId.split('-')[1]}`,
+                        content: currentEditor.innerHTML
+                    });
+                }
+            }
+
             const activeTab = document.querySelector('.tab.active');
             const activeEditor = document.querySelector('.document-editor.active');
 
@@ -407,13 +420,26 @@
             }
             if (newActiveEditor) {
                 newActiveEditor.classList.add('active');
+                // Carrega o conteúdo salvo na memória para o editor
+                const storedContent = tabContents.get(tabId);
+                if (storedContent) {
+                    newActiveEditor.innerHTML = storedContent.content;
+                    const tabTitleInput = newActiveTab.querySelector('input[type="text"]');
+                    if (tabTitleInput) tabTitleInput.value = storedContent.title;
+                }
             }
 
             activeTabId = tabId;
         }
 
         function renameTab(inputElement, tabId) {
-            // The name is already updated in the input, saving to Firebase will pick it up.
+            // Atualiza o nome da aba na memória
+            const currentTabContent = tabContents.get(tabId);
+            if (currentTabContent) {
+                currentTabContent.title = inputElement.value;
+                tabContents.set(tabId, currentTabContent);
+            }
+            // O salvamento no Firebase ocorrerá quando o botão 'Salvar Aba Ativa' for clicado
         }
 
         async function deleteTab(tabId, event) {
@@ -425,26 +451,31 @@
 
             const tabElement = document.querySelector(`.tab[data-tab-id="${tabId}"]`);
             const editorElement = document.getElementById(tabId.replace('tab', 'editor'));
+            const docId = tabToDocIdMap.get(tabId);
 
             if (tabElement && editorElement) {
-                const docId = tabToDocIdMap.get(tabId);
+                // Se houver um docId, tenta deletar do Firebase
                 if (docId && currentUserUid) {
                     try {
                         await db.collection('docoffice').doc(currentUserUid).collection('documents').doc(docId).delete();
                         console.log("Documento excluído do Firebase:", docId);
-                        tabToDocIdMap.delete(tabId);
+                        displayMessage("Documento excluído com sucesso do Firebase!");
                     } catch (error) {
                         console.error("Erro ao excluir documento do Firebase:", error);
-                        alert("Erro ao excluir documento do Firebase.");
-                        return;
+                        alert("Erro ao excluir documento do Firebase. Verifique as permissões.");
+                        return; // Não remove localmente se falhar no Firebase
                     }
                 } else if (!currentUserUid) {
                     alert("Você não está logado para excluir este documento no Firebase. Será removido apenas localmente.");
                 }
 
+                // Remove a aba e o editor do DOM e da memória
                 tabElement.remove();
                 editorElement.remove();
+                tabToDocIdMap.delete(tabId);
+                tabContents.delete(tabId);
 
+                // Reajusta a aba ativa
                 if (activeTabId === tabId) {
                     const remainingTabs = document.querySelectorAll('#tab-container .tab');
                     if (remainingTabs.length > 0) {
@@ -452,8 +483,7 @@
                     } else {
                         activeTabId = null;
                         tabCounter = 1; // Reinicia o contador para uma nova aba
-                        tabToDocIdMap.clear(); // Limpa o mapa
-                        addTab();
+                        addTab(); // Adiciona uma nova aba vazia
                     }
                 }
             }
@@ -469,6 +499,8 @@
                 if (activeEditor) {
                     activeEditor.focus();
                     document.execCommand(command, false, value);
+                    // Opcional: Salvar automaticamente após cada formatação (pode ser muito intenso)
+                    // saveActiveTabToFirebase();
                 }
             }
         }
@@ -554,68 +586,136 @@
             hideLinkDialog();
         }
 
-       async function saveAllDocumentsToFirebase() {
-    if (!currentUserUid) {
-        console.error("UID do usuário não está disponível para salvar documentos.");
-        displayMessage("Erro: Não logado. Faça login para salvar.", true);
-        return;
-    }
+        // Renomeada para salvar a aba ATIVA
+        async function saveActiveTabToFirebase() {
+            if (!currentUserUid) {
+                console.error("UID do usuário não está disponível para salvar documentos.");
+                editorStatusMessage.textContent = "Erro: Não logado. Faça login para salvar.";
+                editorStatusMessage.style.display = 'block';
+                return;
+            }
+            if (!activeTabId) {
+                editorStatusMessage.textContent = "Nenhuma aba ativa para salvar.";
+                editorStatusMessage.style.display = 'block';
+                return;
+            }
 
-    const docData = {
-        title: currentDocument.title,
-        content: currentDocument.content,
-        ownerId: currentUserUid, // <-- Adicione este campo
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    };
+            // Pega o conteúdo e título da aba ativa no momento
+            const activeEditor = document.getElementById(activeTabId.replace('tab', 'editor'));
+            const tabTitleInput = document.querySelector(`.tab[data-tab-id="${activeTabId}"] input[type="text"]`);
 
-    const myDocumentsCollectionRef = db.collection('myDocuments'); // <-- Mude para a nova coleção
+            if (!activeEditor || !tabTitleInput) {
+                console.error("Editor ou título da aba ativa não encontrados.");
+                editorStatusMessage.textContent = "Erro: Não foi possível encontrar a aba ativa para salvar.";
+                editorStatusMessage.style.display = 'block';
+                return;
+            }
 
-    try {
-        if (currentDocument.id) {
-            await myDocumentsCollectionRef.doc(currentDocument.id).update(docData);
-            displayMessage("Documento atualizado com sucesso!");
-        } else {
-            const newDocRef = await myDocumentsCollectionRef.add({
-                ...docData,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            currentDocument.id = newDocRef.id; // Atualiza o ID para o novo documento
-            displayMessage("Novo documento salvo com sucesso!");
+            const title = tabTitleInput.value.trim();
+            const content = activeEditor.innerHTML; // Pega o HTML completo
+
+            // Validação básica
+            if (!title) {
+                editorStatusMessage.textContent = "Erro: O título do documento não pode estar vazio.";
+                editorStatusMessage.style.display = 'block';
+                return;
+            }
+
+            const docData = {
+                title: title,
+                content: content,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(), // Será sobrescrito se for update
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            // Referência à subcoleção de documentos do usuário
+            const userDocumentsCollectionRef = db.collection('docoffice').doc(currentUserUid).collection('documents');
+
+            try {
+                const existingDocId = tabToDocIdMap.get(activeTabId);
+
+                if (existingDocId) {
+                    // Atualizar documento existente
+                    await userDocumentsCollectionRef.doc(existingDocId).update(docData);
+                    editorStatusMessage.textContent = "Documento atualizado com sucesso no Firebase!";
+                    editorStatusMessage.style.backgroundColor = '#e8f5e9'; // Sucesso
+                    editorStatusMessage.style.color = '#388e3c';
+                } else {
+                    // Criar novo documento
+                    const newDocRef = await userDocumentsCollectionRef.add(docData);
+                    // Associa o ID do Firebase à aba recém-salva
+                    tabToDocIdMap.set(activeTabId, newDocRef.id);
+                    editorStatusMessage.textContent = "Novo documento salvo com sucesso no Firebase!";
+                    editorStatusMessage.style.backgroundColor = '#e8f5e9'; // Sucesso
+                    editorStatusMessage.style.color = '#388e3c';
+                }
+                editorStatusMessage.style.display = 'block';
+
+                // Atualiza o conteúdo na memória após salvar (se necessário, para consistência)
+                tabContents.set(activeTabId, { title: title, content: content });
+
+            } catch (error) {
+                console.error("Erro ao salvar documento no Firebase:", error);
+                editorStatusMessage.textContent = `Erro ao salvar: ${error.message}`;
+                editorStatusMessage.style.backgroundColor = '#ffebee'; // Erro
+                editorStatusMessage.style.color = '#d32f2f';
+                editorStatusMessage.style.display = 'block';
+            }
         }
-    } catch (error) {
-        console.error("Erro ao salvar documentos no Firebase:", error);
-        displayMessage("Erro ao salvar: " + error.message, true);
-    }
-}
 
         async function loadAllDocumentsFromFirebase() {
-    if (!currentUserUid) {
-        console.error("UID do usuário não está disponível para carregar documentos.");
-        displayMessage("Erro: Não logado. Faça login para carregar.", true);
-        return;
-    }
+            if (!currentUserUid) {
+                console.error("UID do usuário não está disponível para carregar documentos.");
+                editorStatusMessage.textContent = "Erro: Não logado. Faça login para carregar.";
+                editorStatusMessage.style.display = 'block';
+                return;
+            }
 
-    const myDocumentsCollectionRef = db.collection('myDocuments'); // <-- Mude para a nova coleção
+            editorStatusMessage.textContent = "Carregando documentos do Firebase...";
+            editorStatusMessage.style.backgroundColor = '#fffde7'; // Aviso
+            editorStatusMessage.style.color = '#ff9800';
+            editorStatusMessage.style.display = 'block';
 
-    try {
-        // Filtra por ownerId para carregar apenas os documentos do usuário logado
-        const querySnapshot = await myDocumentsCollectionRef
-            .where('ownerId', '==', currentUserUid) // <-- Adicione este filtro
-            .orderBy('updatedAt', 'desc')
-            .get();
+            // Limpa todas as abas e conteúdos atuais antes de carregar
+            document.getElementById('tab-container').innerHTML = '';
+            document.getElementById('content-container').innerHTML = '';
+            tabCounter = 1;
+            activeTabId = null;
+            tabToDocIdMap.clear();
+            tabContents.clear();
 
-        const loadedDocuments = [];
-        querySnapshot.forEach(doc => {
-            loadedDocuments.push({ id: doc.id, ...doc.data() });
-        });
+            try {
+                // Referência à subcoleção de documentos do usuário
+                const userDocumentsCollectionRef = db.collection('docoffice').doc(currentUserUid).collection('documents');
 
-        // ... (restante do seu código para exibir os documentos) ...
+                const querySnapshot = await userDocumentsCollectionRef
+                    .orderBy('updatedAt', 'desc') // Ordena por data de atualização (precisa de índice!)
+                    .get();
 
-    } catch (error) {
-        console.error("Erro ao carregar documentos do Firebase:", error);
-        displayMessage("Erro ao carregar: " + error.message, true);
-    }
-}
+                if (querySnapshot.empty) {
+                    editorStatusMessage.textContent = "Nenhum documento encontrado no Firebase. Crie um novo!";
+                    editorStatusMessage.style.backgroundColor = '#fffde7';
+                    editorStatusMessage.style.color = '#ff9800';
+                    addTab(); // Adiciona uma aba vazia para começar
+                } else {
+                    querySnapshot.forEach(doc => {
+                        const docData = doc.data();
+                        addTab(docData.title, docData.content, doc.id); // Adiciona a aba com dados do Firebase
+                    });
+                    editorStatusMessage.textContent = "Documentos carregados com sucesso do Firebase!";
+                    editorStatusMessage.style.backgroundColor = '#e8f5e9';
+                    editorStatusMessage.style.color = '#388e3c';
+                }
+                editorStatusMessage.style.display = 'block';
+
+            } catch (error) {
+                console.error("Erro ao carregar documentos do Firebase:", error);
+                editorStatusMessage.textContent = `Erro ao carregar documentos: ${error.message}`;
+                editorStatusMessage.style.backgroundColor = '#ffebee';
+                editorStatusMessage.style.color = '#d32f2f';
+                editorStatusMessage.style.display = 'block';
+            }
+        }
 
         // Inicializa o estado do editor e adiciona a primeira aba vazia
         document.addEventListener('DOMContentLoaded', () => {
@@ -623,6 +723,6 @@
             addTab(); // Adiciona uma aba inicial para o usuário começar a digitar, mesmo sem login
         });
     </script>
-    <script src="https://kit.fontawesome.com/abcdefg123.js" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/js/all.min.js" crossorigin="anonymous"></script>
 </body>
 </html>
