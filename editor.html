@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Editor de Documentos com Abas</title>
     <style>
-        /* ... Seu CSS existente ... */
         body {
             font-family: 'Arial', sans-serif;
             line-height: 1.6;
@@ -85,7 +84,7 @@
         #toolbar > * {
             margin-bottom: 5px;
         }
-        #toolbar button, #toolbar select, #add-tab-btn, #save-firebase-btn, #load-firebase-btn {
+        #toolbar button, #toolbar select, #add-tab-btn, #save-firebase-btn, #load-firebase-btn, #google-login-btn {
             padding: 8px 12px;
             border: 1px solid #ccc;
             border-radius: 4px;
@@ -98,6 +97,23 @@
         #toolbar button:hover, #add-tab-btn:hover, #save-firebase-btn:hover, #load-firebase-btn:hover {
             background-color: #d0d0d0;
         }
+        /* Estilo para o botão de login do Google */
+        #google-login-btn {
+            background-color: #4285F4; /* Cor azul do Google */
+            color: white;
+            border: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        #google-login-btn:hover {
+            background-color: #357ae8; /* Azul um pouco mais escuro ao passar o mouse */
+        }
+        #google-login-btn img {
+            width: 18px;
+            height: 18px;
+        }
+
         #link-modal {
             display: none;
             position: fixed;
@@ -205,6 +221,9 @@
         <button id="add-tab-btn" onclick="addTab()">Adicionar Aba</button>
         <button id="load-firebase-btn" onclick="loadAllDocumentsFromFirebase()">Carregar Documentos</button>
         <button id="save-firebase-btn" onclick="saveAllDocumentsToFirebase()">Salvar no Firebase</button>
+        <button id="google-login-btn" onclick="signInWithGoogle()">
+            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google icon"> Login com Google
+        </button>
     </div>
 
     <div id="tab-container">
@@ -226,8 +245,7 @@
 
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
-
-    <script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script> <script>
         // Your Firebase configuration (manter a mesma configuração do index.html)
         const firebaseConfig = {
             apiKey: "AIzaSyB9GkSqTIZ0kbVsba_WOdQeVAETrF9qna0",
@@ -239,15 +257,31 @@
             measurementId: "G-PLKNZNFCQ8"
         };
 
-        // Initialize Firebase (aqui no editor, APENAS para Firestore)
+        // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
-        // REMOVA QUALQUER INICIALIZAÇÃO DE `firebase.auth()` AQUI.
+        const auth = firebase.auth(); // Inicializa o Firebase Auth
 
         let currentUserUid = null; // Esta variável será preenchida pela mensagem do iframe pai
         const editorStatusMessage = document.getElementById('editor-status-message');
         const saveButton = document.getElementById('save-firebase-btn');
         const loadButton = document.getElementById('load-firebase-btn');
+        const googleLoginBtn = document.getElementById('google-login-btn'); // Referência ao novo botão de login
+
+        // Função para login com Google
+        async function signInWithGoogle() {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            try {
+                await auth.signInWithPopup(provider);
+                // O listener de `onAuthStateChanged` em `index.html` (ou o pai)
+                // se encarregará de enviar o UID para este iframe,
+                // que por sua vez, chamará updateEditorUI.
+                alert("Login com Google realizado com sucesso!");
+            } catch (error) {
+                console.error("Erro durante o login com Google:", error);
+                alert("Erro ao fazer login com Google. Verifique o console para mais detalhes.");
+            }
+        }
 
         // Função para atualizar o estado da UI do editor
         function updateEditorUI(loggedIn) {
@@ -256,6 +290,7 @@
                 // Habilita os botões de salvar/carregar
                 saveButton.disabled = false;
                 loadButton.disabled = false;
+                if (googleLoginBtn) googleLoginBtn.style.display = 'none'; // Esconde o botão de login
             } else {
                 // Mostra a mensagem de "deslogado"
                 editorStatusMessage.textContent = "Você precisa estar logado no WZZM Office para salvar/carregar documentos.";
@@ -263,6 +298,7 @@
                 // Desabilita os botões de salvar/carregar
                 saveButton.disabled = true;
                 loadButton.disabled = true;
+                if (googleLoginBtn) googleLoginBtn.style.display = 'inline-flex'; // Mostra o botão de login
             }
         }
 
@@ -313,7 +349,6 @@
                     // No momento, apenas removemos o active, o conteúdo permanece no DOM
                 }
             }
-
 
             const tabId = `tab-${tabCounter}`;
             const editorId = `editor-${tabCounter}`;
@@ -578,8 +613,6 @@
 
         async function loadAllDocumentsFromFirebase() {
             if (!currentUserUid) {
-                // Esta condição é redundante se updateEditorUI(false) já desabilitou o botão,
-                // mas é uma boa prática de segurança.
                 alert("Você precisa estar logado no WZZM Office para carregar documentos.");
                 return;
             }
