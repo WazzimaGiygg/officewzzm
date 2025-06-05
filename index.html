@@ -5,10 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>.WZZM Office Online</title>
     <link rel="icon" href="favicom.png" type="image/x-icon">
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-analytics-compat.js"></script>
     <style>
         body {
             font-family: sans-serif;
@@ -34,30 +30,9 @@
             font-size: 24px;
         }
 
+        /* Removida a seção de login/logout do cabeçalho do index.html */
         .login-section {
-            display: flex;
-            align-items: center;
-        }
-
-        .login-section span {
-            margin-right: 15px;
-            font-weight: bold;
-        }
-
-        .login-section button {
-            background-color: #ff4081;
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-            margin-left: 10px;
-            transition: background-color 0.3s ease;
-        }
-
-        .login-section button:hover {
-            background-color: #e0005e;
+            display: none; /* Oculta a seção de login/logout no header do index */
         }
 
         .navbar {
@@ -87,16 +62,7 @@
             background-color: #ccc;
         }
 
-        .nav-link.disabled {
-            cursor: not-allowed;
-            opacity: 0.6;
-            background-color: #e0e0e0;
-            color: #777;
-        }
-        .nav-link.disabled:hover {
-            background-color: #e0e0e0;
-        }
-
+        /* Removida a classe disabled, pois o acesso é liberado, e a autenticação ocorre dentro do iframe */
         main {
             flex-grow: 1;
             padding: 20px;
@@ -111,11 +77,9 @@
             min-height: 500px;
         }
 
+        /* A mensagem de acesso negado será exibida DENTRO do iframe agora, se a página precisar */
         #access-denied-message {
-            text-align: center;
-            padding: 50px;
-            font-size: 20px;
-            color: #666;
+            display: none; /* Oculta esta mensagem, pois o controle de acesso é no iframe */
         }
     </style>
 </head>
@@ -140,183 +104,46 @@
 
     <main>
         <div id="content-area">
-            <iframe id="contentFrame" src="about:blank" style="display: none;"></iframe>
-            <div id="access-denied-message" style="display: block;">
-                Você precisa estar logado para acessar as ferramentas do WZZM Office Online.
+            <iframe id="contentFrame" src="about:blank"></iframe>
             </div>
-        </div>
     </main>
 
+    <p style="text-align: center;">Site administrador pela <a href="https://wzzm.org" target="_blank">Wiki Zone Zero Mod</a></p>
+    <p style="text-align: center;">&nbsp;</p>
+
     <script>
-        // --- Configuração do Firebase ---
-        const firebaseConfig = {
-            apiKey: "AIzaSyB9GkSqTIZ0kbVsba_WOdQeVAETrF9qna0",
-            authDomain: "wzzm-ce3fc.firebaseapp.com",
-            projectId: "wzzm-ce3fc",
-            storageBucket: "wzzm-ce3fc.firebasestorage.app",
-            messagingSenderId: "249427877153",
-            appId: "1:249427877153:web:0e4297294794a5aadeb260",
-            measurementId: "G-PLKNZNFCQ8"
-        };
-
-        // Inicialize o Firebase
-        const app = firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const firestore = firebase.firestore();
-        const analytics = firebase.analytics();
-
         // Elementos da UI
-        const loginButton = document.getElementById('login-button');
-        const logoutButton = document.getElementById('logout-button');
-        const userInfo = document.getElementById('user-info');
         const contentFrame = document.getElementById('contentFrame');
-        const accessDeniedMessage = document.getElementById('access-denied-message');
         const navLinks = document.querySelectorAll('.nav-link');
-
-        // URL do domínio do seu editor.html (o que será carregado no iframe)
-        // ESSENCIAL: SUBSTITUA PELA ORIGEM REAL DO SEU EDITOR.HTML
-        // Se o editor.html estiver no MESMO DOMÍNIO do index.html (ex: office.wzzm.org/editor.html),
-        // use window.location.origin. Se for um domínio diferente, use o domínio completo.
-        const editorOrigin = window.location.origin; // Exemplo: 'https://office.wzzm.org' ou 'http://localhost:5500'
 
         // Função para carregar a página no iframe
         function loadPage(pageSrc) {
-            if (auth.currentUser) {
-                contentFrame.src = pageSrc;
-                // Ativa o link de navegação correspondente
-                navLinks.forEach(link => {
-                    if (link.dataset.pageSrc === pageSrc) {
-                        link.classList.add('active');
-                    } else {
-                        link.classList.remove('active');
-                    }
-                });
-            } else {
-                console.warn("Acesso negado: Usuário não logado. Página não carregada.");
-            }
+            contentFrame.src = pageSrc;
+            // Ativa o link de navegação correspondente
+            navLinks.forEach(link => {
+                if (link.dataset.pageSrc === pageSrc) {
+                    link.classList.add('active');
+                } else {
+                    link.classList.remove('active');
+                }
+            });
         }
 
         // Adiciona event listeners aos links de navegação
         navLinks.forEach(link => {
             link.addEventListener('click', function(event) {
                 event.preventDefault();
-                if (!this.classList.contains('disabled')) {
-                    loadPage(this.dataset.pageSrc);
-                }
+                loadPage(this.dataset.pageSrc);
             });
         });
 
-        // Função para desabilitar/habilitar links de navegação
-        function setNavLinksEnabled(enabled) {
-            navLinks.forEach(link => {
-                if (enabled) {
-                    link.classList.remove('disabled');
-                    link.removeAttribute('disabled');
-                } else {
-                    link.classList.add('disabled');
-                }
-            });
-        }
-
-        // Listener de estado de autenticação
-        auth.onAuthStateChanged(user => {
-            if (user) {
-                // Usuário logado
-                userInfo.textContent = `Olá, ${user.displayName || user.email}!`;
-                loginButton.style.display = 'none';
-                logoutButton.style.display = 'inline-block';
-                
-                contentFrame.style.display = 'block';
-                accessDeniedMessage.style.display = 'none';
-                setNavLinksEnabled(true);
-
-                // Carrega a página padrão após o login se o iframe estiver vazio
-                if (contentFrame.src === "about:blank" || contentFrame.src === "") {
-                    const firstPageSrc = navLinks[0]?.dataset.pageSrc;
-                    if (firstPageSrc) {
-                        loadPage(firstPageSrc);
-                    }
-                }
-
-                // *** ADIÇÃO CRÍTICA AQUI: Enviar o UID para o iframe ***
-                // Certifique-se de que o iframe esteja carregado antes de enviar a mensagem
-                // ou use um evento 'load' no iframe para garantir que ele esteja pronto.
-                // Para simplificar, vamos usar um pequeno atraso, mas 'load' é mais robusto.
-                contentFrame.onload = () => {
-                    // Após o iframe carregar a nova página (ou recarregar)
-                    if (contentFrame.contentWindow) {
-                        contentFrame.contentWindow.postMessage(
-                            { type: 'AUTH_UID', uid: user.uid },
-                            editorOrigin // Use a origem específica do seu editor
-                        );
-                        console.log("UID enviado para o iframe:", user.uid);
-                    }
-                };
-
-                // Se o iframe já estiver carregado e o user já estiver autenticado na primeira carga
-                // Disparar o envio da mensagem imediatamente também
-                if (contentFrame.contentWindow && contentFrame.src !== "about:blank") {
-                     contentFrame.contentWindow.postMessage(
-                        { type: 'AUTH_UID', uid: user.uid },
-                        editorOrigin
-                    );
-                    console.log("UID enviado imediatamente para o iframe (já carregado):", user.uid);
-                }
-
-            } else {
-                // Usuário não logado
-                userInfo.textContent = '';
-                loginButton.style.display = 'inline-block';
-                logoutButton.style.display = 'none';
-
-                contentFrame.style.display = 'none';
-                accessDeniedMessage.style.display = 'block';
-                setNavLinksEnabled(false);
-                
-                contentFrame.src = "about:blank";
-                navLinks.forEach(link => link.classList.remove('active'));
-
-                // *** Enviar UID nulo para o iframe quando o usuário desloga ***
-                // Isso informa ao editor que não há usuário autenticado
-                if (contentFrame.contentWindow) {
-                    contentFrame.contentWindow.postMessage(
-                        { type: 'AUTH_UID', uid: null },
-                        editorOrigin
-                    );
-                    console.log("UID nulo enviado para o iframe (usuário deslogado).");
-                }
+        // Carrega a página padrão ao carregar o index.html
+        document.addEventListener('DOMContentLoaded', () => {
+            const firstPageSrc = navLinks[0]?.dataset.pageSrc;
+            if (firstPageSrc) {
+                loadPage(firstPageSrc);
             }
         });
-
-        // Evento de clique para o botão de Login
-        loginButton.addEventListener('click', () => {
-            const provider = new firebase.auth.GoogleAuthProvider();
-            auth.signInWithPopup(provider)
-                .then((result) => {
-                    console.log("Usuário logado:", result.user);
-                })
-                .catch((error) => {
-                    console.error("Erro de login:", error);
-                    alert(`Erro ao fazer login: ${error.message}`);
-                });
-        });
-
-        // Evento de clique para o botão de Logout
-        logoutButton.addEventListener('click', () => {
-            auth.signOut().then(() => {
-                console.log("Usuário deslogado.");
-            }).catch((error) => {
-                console.error("Erro ao fazer logout:", error);
-                alert(`Erro ao fazer logout: ${error.message}`);
-            });
-        });
-
-        // Inicializa o estado dos links de navegação ao carregar a página
-        document.addEventListener('DOMContentLoaded', () => {
-            setNavLinksEnabled(false);
-        });
     </script>
-<p style="text-align: center;">Site administrador pela <a href="wzzm.org">Wiki Zone Zero Mod</a></p>
-<p style="text-align: center;">&nbsp;</p>
 </body>
 </html>
