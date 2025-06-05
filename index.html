@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.indigo-pink.min.css">
     <style>
+        /* Seus estilos CSS existentes */
         body {
             font-family: 'Roboto', 'Helvetica', Arial, sans-serif;
             background-color: #f5f5f5;
@@ -104,7 +105,7 @@
             margin-top: 20px;
             display: none;
         }
-        /* Estilos para o diálogo de denúncia/mensagem */
+        /* Estilos para o diálogo de denúncia/mensagem (mantidos) */
         .mdl-dialog {
             width: 80%;
             max-width: 600px;
@@ -270,7 +271,6 @@
         </div>
     </dialog>
 
-
     <script>
         // --- Configuração do Firebase com suas chaves e dados originais ---
         const firebaseConfig = {
@@ -291,17 +291,16 @@
         }
         const firestore = firebase.firestore();
         const auth = firebase.auth();
-        const firebaseFunctions = firebase.functions(); // Inicializa o módulo Functions
+        const firebaseFunctions = firebase.functions();
 
-        let currentUser = null; // Usuário logado
-        let currentUserProfile = null; // Dados do perfil do usuário na coleção 'users'
-        let currentUserTeacherProfile = null; // Dados do perfil do professor na coleção 'userteatcher'
+        let currentUser = null;
+        let currentUserProfile = null;
+        let currentUserTeacherProfile = null;
 
-        // Elementos HTML
+        // Elementos HTML existentes
         const loadingMessage = document.getElementById('loading-message');
         const errorDisplay = document.getElementById('error-display');
         const userInfoSection = document.getElementById('user-info-section');
-
         const userUidSpan = document.getElementById('user-uid');
         const userEmailSpan = document.getElementById('user-email');
         const userNameSpan = document.getElementById('user-name');
@@ -310,40 +309,28 @@
         const userIsTeacherSpan = document.getElementById('user-is-teacher');
         const userCpfSpan = document.getElementById('user-cpf');
         const userRgSpan = document.getElementById('user-rg');
-
         const btnArticles = document.getElementById('btn-articles');
         const btnMaterials = document.getElementById('btn-materials');
         const btnPersonas = document.getElementById('btn-personas');
         const btnManageTeacher = document.getElementById('btn-manage-teacher');
-        const btnReport = document.getElementById('btn-report'); // Botão de denúncia
-        const btnMyMessages = document.getElementById('btn-my-messages'); // Botão de mensagens
-        const btnMyDocuments = document.getElementById('btn-my-documents'); // Novo botão para documentos
-        const btnOpenEditor = document.getElementById('btn-open-editor'); // Botão para abrir o editor
-
+        const btnReport = document.getElementById('btn-report');
+        const btnMyMessages = document.getElementById('btn-my-messages');
         const articlesCountSpan = document.getElementById('articles-count');
         const materialsCountSpan = document.getElementById('materials-count');
         const personasCountSpan = document.getElementById('personas-count');
-        const unreadMessagesCountSpan = document.getElementById('unread-messages-count'); // Contador de mensagens não lidas
-        const documentsCountSpan = document.getElementById('documents-count'); // Novo contador para documentos
-
+        const unreadMessagesCountSpan = document.getElementById('unread-messages-count');
         const sectionTitle = document.getElementById('section-title');
         const dataDisplayList = document.getElementById('data-display-list');
-
-        // Elementos para o diálogo de denúncia
         const reportDialog = document.getElementById('report-dialog');
         const submitReportBtn = document.getElementById('submit-report-btn');
         const reportContentIdInput = document.getElementById('report-content-id');
         const reportContentTypeSelect = document.getElementById('report-content-type');
         const reportDescriptionTextarea = document.getElementById('report-description');
-
-        // Elementos para o diálogo de mensagens (detalhes)
         const messageDetailDialog = document.getElementById('message-detail-dialog');
         const messageDialogSubject = document.getElementById('message-dialog-subject');
         const messageDialogSender = document.getElementById('message-dialog-sender');
         const messageDialogDate = document.getElementById('message-dialog-date');
         const messageDialogBody = document.getElementById('message-dialog-body');
-
-        // Elementos HTML (Adições para Envio de Mensagem)
         const btnSendMessage = document.getElementById('btn-send-message');
         const sendMessageDialog = document.getElementById('send-message-dialog');
         const recipientUidInput = document.getElementById('recipient-uid-input');
@@ -351,7 +338,10 @@
         const messageBodyInput = document.getElementById('message-body-input');
         const sendMessageBtn = document.getElementById('send-message-btn');
 
-        // Elementos para o diálogo de detalhes do documento
+        // NOVOS Elementos HTML para Documentos
+        const btnMyDocuments = document.getElementById('btn-my-documents');
+        const btnOpenEditor = document.getElementById('btn-open-editor');
+        const documentsCountSpan = document.getElementById('documents-count');
         const documentDetailDialog = document.getElementById('document-detail-dialog');
         const documentDialogTitle = document.getElementById('document-dialog-title');
         const documentDialogCreatedAt = document.getElementById('document-dialog-created-at');
@@ -359,12 +349,10 @@
         const documentDialogContent = document.getElementById('document-dialog-content');
         const openEditorFromDialogBtn = document.getElementById('open-editor-from-dialog');
 
-        // Cache para nomes de usuários (para evitar buscas repetidas)
+
         const userNameCache = {};
+        let currentActiveList = null;
 
-        let currentActiveList = null; // Para saber qual lista está ativa (mensagens, documentos, etc.)
-
-        // Função para exibir erros na interface
         function displayError(message) {
             errorDisplay.textContent = `Erro: ${message}`;
             errorDisplay.style.display = 'block';
@@ -372,7 +360,6 @@
             userInfoSection.style.display = 'none';
         }
 
-        // Função para carregar o perfil do usuário
         async function loadUserProfile(uid) {
             try {
                 const userDoc = await firestore.collection('users').doc(uid).get();
@@ -384,11 +371,10 @@
                     userLastNameSpan.textContent = currentUserProfile.lastName || 'Não definido';
                     userIsAdminSpan.textContent = currentUserProfile.isAdmin ? 'Sim' : 'Não';
                 } else {
-                    // Se o documento 'users' não existir, cria um perfil básico
                     await firestore.collection('users').doc(uid).set({
                         email: currentUser.email,
                         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                        isAdmin: false // Define como false por padrão
+                        isAdmin: false
                     });
                     currentUserProfile = { email: currentUser.email, isAdmin: false };
                     userUidSpan.textContent = uid;
@@ -403,7 +389,6 @@
                 return;
             }
 
-            // Tenta carregar dados do professor
             try {
                 const teacherDocSnapshot = await firestore.collection('userteatcher')
                     .where('googleUid', '==', uid)
@@ -413,7 +398,7 @@
                     userIsTeacherSpan.textContent = 'Sim';
                     userCpfSpan.textContent = currentUserTeacherProfile.cpf || 'Não definido';
                     userRgSpan.textContent = currentUserTeacherProfile.rg || 'Não definido';
-                    btnManageTeacher.style.display = 'inline-block'; // Mostra botão de gerenciar professor
+                    btnManageTeacher.style.display = 'inline-block';
                 } else {
                     userIsTeacherSpan.textContent = 'Não';
                     userCpfSpan.textContent = 'Não aplicável';
@@ -429,7 +414,6 @@
             loadingMessage.style.display = 'none';
             userInfoSection.style.display = 'block';
 
-            // Atualiza contagens e botões MDL
             await updateCounts();
             if (window.componentHandler) {
                 window.componentHandler.upgradeElements(userInfoSection);
@@ -440,7 +424,6 @@
             }
         }
 
-        // Função para atualizar as contagens de artigos, materiais, personas, documentos e mensagens
         async function updateCounts() {
             if (!currentUser) return;
 
@@ -454,14 +437,13 @@
                 const personasQuery = await firestore.collection('minhapersona').where('authorUid', '==', currentUser.uid).get();
                 personasCountSpan.textContent = personasQuery.size;
 
-                // Contar mensagens não lidas
                 const unreadMessagesQuery = await firestore.collection('userEmails')
                     .where('recipientId', '==', currentUser.uid)
                     .where('read', '==', false)
                     .get();
                 unreadMessagesCountSpan.textContent = unreadMessagesQuery.size;
 
-                // Contar documentos do usuário
+                // Contar documentos do usuário na subcoleção 'documents'
                 const documentsQuery = await firestore.collection('docoffice').doc(currentUser.uid).collection('documents').get();
                 documentsCountSpan.textContent = documentsQuery.size;
 
@@ -470,16 +452,14 @@
             }
         }
 
-        // Função para abrir o diálogo de denúncia com o ID do conteúdo pré-preenchido
         function openReportDialog(contentId, contentType) {
-            reportContentIdInput.value = contentId || ''; // Usar string vazia para limpar
+            reportContentIdInput.value = contentId || '';
             reportContentTypeSelect.value = contentType || 'other';
-            reportDescriptionTextarea.value = ''; // Limpa a descrição anterior
+            reportDescriptionTextarea.value = '';
             reportDialog.showModal();
-            // Atualiza o MDL Textfield para exibir o valor preenchido
             if (window.componentHandler) {
                 window.componentHandler.upgradeElement(reportContentIdInput.parentElement);
-                reportContentIdInput.parentElement.MaterialTextfield.checkDirty(); // Força a atualização do estado visual
+                reportContentIdInput.parentElement.MaterialTextfield.checkDirty();
                 window.componentHandler.upgradeElement(reportContentTypeSelect.parentElement);
                 reportContentTypeSelect.parentElement.MaterialTextfield.checkDirty();
                 window.componentHandler.upgradeElement(reportDescriptionTextarea.parentElement);
@@ -487,7 +467,6 @@
             }
         }
 
-        // Função para enviar a denúncia
         async function submitReport() {
             if (!currentUser) {
                 alert("Você precisa estar logado para enviar denúncias.");
@@ -498,7 +477,6 @@
             const contentType = reportContentTypeSelect.value;
             const description = reportDescriptionTextarea.value.trim();
 
-            // Validação visual dos campos MDL
             let isValid = true;
             if (!description) {
                 reportDescriptionTextarea.parentElement.classList.add('is-invalid');
@@ -525,7 +503,7 @@
                     contentType: contentType,
                     description: description,
                     timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    status: 'pending' // Novo campo para o status da denúncia
+                    status: 'pending'
                 });
                 alert("Denúncia enviada com sucesso! Agradecemos sua colaboração.");
                 reportDialog.close();
@@ -535,12 +513,10 @@
             }
         }
 
-        // Nova função para abrir o diálogo de envio de mensagem
         function openSendMessageDialog() {
             recipientUidInput.value = '';
             messageSubjectInput.value = '';
             messageBodyInput.value = '';
-            // Força a atualização do MDL Textfield para resetar o estado
             if (window.componentHandler) {
                 window.componentHandler.upgradeElement(recipientUidInput.parentElement);
                 recipientUidInput.parentElement.MaterialTextfield.checkDirty();
@@ -557,7 +533,6 @@
             sendMessageDialog.showModal();
         }
 
-        // Nova função para enviar a mensagem
         async function sendNewMessage() {
             if (!currentUser) {
                 alert("Você precisa estar logado para enviar mensagens.");
@@ -568,7 +543,6 @@
             const subject = messageSubjectInput.value.trim();
             const message = messageBodyInput.value.trim();
 
-            // Validação simples
             let isValid = true;
             if (!recipientUid) {
                 recipientUidInput.parentElement.classList.add('is-invalid');
@@ -594,7 +568,6 @@
                 return;
             }
 
-            // Opcional: Verificar se o UID do destinatário existe na coleção 'users'
             try {
                 const recipientUserDoc = await firestore.collection('users').doc(recipientUid).get();
                 if (!recipientUserDoc.exists) {
@@ -611,27 +584,25 @@
                 await firestore.collection('userEmails').add({
                     recipientId: recipientUid,
                     senderId: currentUser.uid,
-                    senderEmail: currentUser.email, // Opcional, para referência
+                    senderEmail: currentUser.email,
                     subject: subject,
                     message: message,
                     timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    read: false // Nova mensagem é sempre não lida
+                    read: false
                 });
 
                 alert("Mensagem enviada com sucesso!");
-                sendMessageDialog.close(); // Fecha o diálogo
-                // Recarrega a lista de mensagens do usuário se ele estiver visualizando-as
-                if (currentActiveList === 'messages') { // Verifica se está na seção de mensagens
+                sendMessageDialog.close();
+                if (currentActiveList === 'messages') {
                     displayUserMessages();
                 }
-                updateCounts(); // Atualiza o contador de mensagens não lidas
+                updateCounts();
             } catch (error) {
                 console.error("Erro ao enviar mensagem:", error);
                 alert("Erro ao enviar mensagem. Verifique o UID do destinatário e tente novamente.");
             }
         }
 
-        // Função para buscar o nome do usuário a partir do UID
         async function getUserName(uid) {
             if (userNameCache[uid]) {
                 return userNameCache[uid];
@@ -647,40 +618,33 @@
             } catch (error) {
                 console.error("Erro ao buscar nome do usuário:", error);
             }
-            return uid; // Retorna o UID se o nome não for encontrado
+            return uid;
         }
 
-        // Função para exibir o conteúdo da mensagem em um diálogo e marcar como lida
         async function displayMessageInDialog(messageData, messageId, isRead) {
             messageDialogSubject.textContent = messageData.subject || 'Sem Assunto';
-            // Buscar o nome do remetente
             const senderName = await getUserName(messageData.senderId);
             messageDialogSender.textContent = senderName;
-
             messageDialogDate.textContent = messageData.timestamp ? new Date(messageData.timestamp.toDate()).toLocaleString('pt-BR') : 'Data Indefinida';
             messageDialogBody.textContent = messageData.message || 'Mensagem vazia.';
-
             messageDetailDialog.showModal();
 
-            // Se a mensagem não foi lida, marca como lida no Firestore
             if (!isRead) {
                 try {
                     await firestore.collection('userEmails').doc(messageId).update({ read: true });
-                    // Atualiza o contador de mensagens não lidas e a lista
                     await updateCounts();
-                    // Opcional: Atualiza o status da mensagem na lista sem recarregar tudo
                     const messageElement = document.querySelector(`.message-item[data-message-id="${messageId}"]`);
                     if (messageElement) {
                         messageElement.classList.remove('unread');
                         const icon = messageElement.querySelector('.message-text .material-icons');
                         if (icon) {
-                            icon.textContent = 'drafts'; // Ícone de mensagem lida
-                            icon.style.color = ''; // Remove a cor de destaque
+                            icon.textContent = 'drafts';
+                            icon.style.color = '';
                         }
                         const readBtn = messageElement.querySelector('.message-read-btn');
                         if (readBtn) {
                             readBtn.title = 'Marcar como não lida';
-                            readBtn.querySelector('.material-icons').textContent = 'visibility_off'; // Icone de olho fechado
+                            readBtn.querySelector('.material-icons').textContent = 'visibility_off';
                         }
                     }
                 } catch (error) {
@@ -689,39 +653,35 @@
             }
         }
 
-        // Função para alternar o status de lida/não lida de uma mensagem
         async function toggleMessageReadStatus(messageId, currentReadStatus, event) {
-            event.stopPropagation(); // Evita que o clique no botão ative a visualização da mensagem
+            event.stopPropagation();
 
             try {
                 await firestore.collection('userEmails').doc(messageId).update({ read: !currentReadStatus });
-                await updateCounts(); // Atualiza o contador de não lidas
-                displayUserMessages(); // Recarrega a lista para refletir a mudança
+                await updateCounts();
+                displayUserMessages();
             } catch (error) {
                 console.error("Erro ao alternar status da mensagem:", error);
                 alert("Erro ao atualizar status da mensagem.");
             }
         }
 
-
-        // Função para deletar uma mensagem
         async function deleteMessage(messageId, event) {
-            event.stopPropagation(); // Evita que o clique no botão ative a visualização da mensagem
+            event.stopPropagation();
             if (!confirm('Tem certeza que deseja excluir esta mensagem?')) {
                 return;
             }
             try {
                 await firestore.collection('userEmails').doc(messageId).delete();
                 alert("Mensagem excluída com sucesso!");
-                await updateCounts(); // Atualiza contadores
-                displayUserMessages(); // Recarrega a lista de mensagens
+                await updateCounts();
+                displayUserMessages();
             } catch (error) {
                 console.error("Erro ao excluir mensagem:", error);
                 alert("Erro ao excluir mensagem.");
             }
         }
 
-        // Função para exibir as mensagens do usuário
         async function displayUserMessages() {
             if (!currentUser) {
                 dataDisplayList.innerHTML = '<p class="empty-state">Faça login para ver suas mensagens.</p>';
@@ -756,8 +716,8 @@
 
                     const senderName = userNameCache[messageData.senderId] || messageData.senderEmail || messageData.senderId;
                     const displaySubject = messageData.subject ? messageData.subject.substring(0, 50) + (messageData.subject.length > 50 ? '...' : '') : 'Sem Assunto';
-                    const icon = messageData.read ? 'drafts' : 'email'; // 'drafts' para lido, 'email' para não lido
-                    const iconColor = messageData.read ? '' : '#4285f4'; // Cor azul para não lido
+                    const icon = messageData.read ? 'drafts' : 'email';
+                    const iconColor = messageData.read ? '' : '#4285f4';
 
                     messageElement.innerHTML = `
                         <span class="message-text" onclick="displayMessageInDialog(${JSON.stringify(messageData)}, '${messageId}', ${messageData.read})">
@@ -787,9 +747,8 @@
         }
 
 
-        // --- NOVAS FUNÇÕES PARA DOCUMENTOS ---
+        // --- NOVAS FUNÇÕES PARA DOCUMENTOS (Integradas ao script existente) ---
 
-        // Função para exibir os documentos do usuário
         async function displayUserDocuments() {
             if (!currentUser) {
                 dataDisplayList.innerHTML = '<p class="empty-state">Faça login para ver seus documentos.</p>';
@@ -801,7 +760,6 @@
             dataDisplayList.innerHTML = '<p class="loading-message">Carregando documentos...</p>';
 
             try {
-                // Acessa a subcoleção 'documents' dentro do doc do UID do usuário em 'docoffice'
                 const documentsRef = firestore.collection('docoffice').doc(currentUser.uid).collection('documents');
                 const querySnapshot = await documentsRef.orderBy('updatedAt', 'desc').get();
 
@@ -810,7 +768,7 @@
                     return;
                 }
 
-                dataDisplayList.innerHTML = ''; // Limpa o estado de carregamento/vazio
+                dataDisplayList.innerHTML = '';
 
                 querySnapshot.forEach(doc => {
                     const documentData = doc.data();
@@ -845,7 +803,6 @@
 
             } catch (error) {
                 console.error("Erro ao carregar documentos:", error);
-                // Permissão negada é um erro comum se as regras não estiverem certas
                 if (error.code === 'permission-denied') {
                     dataDisplayList.innerHTML = `<p class="error-message">Erro de permissão: Suas regras do Firebase não permitem acesso a este documento. Verifique as regras do Firestore.</p>`;
                 } else {
@@ -854,48 +811,36 @@
             }
         }
 
-        // Função para exibir o conteúdo do documento em um diálogo
         async function displayDocumentInDialog(documentData, documentId) {
             documentDialogTitle.textContent = documentData.name || 'Documento Sem Título';
             documentDialogCreatedAt.textContent = documentData.createdAt ? new Date(documentData.createdAt.toDate()).toLocaleString('pt-BR') : 'Indefinida';
             documentDialogUpdatedAt.textContent = documentData.updatedAt ? new Date(documentData.updatedAt.toDate()).toLocaleString('pt-BR') : 'Indefinida';
-            documentDialogContent.innerHTML = documentData.content || 'Documento vazio.'; // Usa innerHTML para renderizar o HTML
+            documentDialogContent.innerHTML = documentData.content || 'Documento vazio.';
             documentDetailDialog.showModal();
 
-            // Adiciona o listener para o botão "Abrir no Editor" no diálogo
             openEditorFromDialogBtn.onclick = (event) => {
                 event.stopPropagation();
-                documentDetailDialog.close(); // Fecha o diálogo
-                openEditorWithDocument(documentId); // Abre o editor com o ID do documento
+                documentDetailDialog.close();
+                openEditorWithDocument(documentId);
             };
         }
 
-        // Função para abrir o editor (editor.html)
         function openEditor() {
-            // Abre o editor em uma nova aba ou janela
-            // Esta linha pode ser adaptada para abrir em um modal, iframe, etc.
-            // Para este exemplo, vou abrir em uma nova janela para simular o comportamento de "abrir app".
+            // Abre o editor.html em uma nova aba/janela.
+            // O login no editor.html deve ser automático se o usuário já estiver logado aqui (Auth Persistence).
             window.open('editor.html', '_blank');
         }
 
-        // Função para abrir o editor passando um ID de documento específico (PARA FUTURA IMPLEMENTAÇÃO)
-        // Por enquanto, o editor.html não tem lógica para receber um ID e carregar apenas um doc.
-        // Ele carrega TODOS os docs do usuário. Esta função é um placeholder para futura expansão.
         function openEditorWithDocument(documentId) {
-            // Atualmente, o editor.html carrega TODOS os documentos do usuário.
-            // Para carregar UM documento específico, você precisaria modificar editor.html
-            // para aceitar um parâmetro na URL (ex: editor.html?docId=xyz)
-            // e ter lógica interna para carregar aquele doc e focar nele.
-            console.log(`Abrindo editor para o documento com ID: ${documentId}.`);
-            // Por enquanto, apenas abre o editor principal.
-            openEditor();
-            alert("A funcionalidade de abrir um documento específico no editor ainda não está totalmente implementada. O editor será aberto para que você possa carregar seus documentos.");
+            // Esta função foi alterada para refletir que o editor ainda não carrega um documento específico.
+            // Ela abrirá o editor.html e você precisará carregar o documento lá manualmente por enquanto.
+            console.log(`Tentando abrir editor para o documento com ID: ${documentId}.`);
+            alert("A funcionalidade de abrir um documento específico no editor ainda não está totalmente implementada. O editor será aberto para que você possa carregar seus documentos a partir da lista interna do editor.");
+            openEditor(); // Abre o editor geral
         }
 
-
-        // Função para deletar um documento
         async function deleteDocument(documentId, event) {
-            event.stopPropagation(); // Evita que o clique no botão ative a visualização do documento
+            event.stopPropagation();
             if (!currentUser) {
                 alert("Você precisa estar logado para excluir documentos.");
                 return;
@@ -906,18 +851,16 @@
             try {
                 await firestore.collection('docoffice').doc(currentUser.uid).collection('documents').doc(documentId).delete();
                 alert("Documento excluído com sucesso!");
-                await updateCounts(); // Atualiza contadores
-                displayUserDocuments(); // Recarrega a lista de documentos
+                await updateCounts();
+                displayUserDocuments();
             } catch (error) {
                 console.error("Erro ao excluir documento:", error);
                 alert("Erro ao excluir documento: " + error.message);
             }
         }
 
+        // --- Listeners de Eventos (mantidos e adicionados) ---
 
-        // --- Listeners de Eventos ---
-
-        // Listener de autenticação do Firebase
         auth.onAuthStateChanged(async (user) => {
             if (user) {
                 currentUser = user;
@@ -931,13 +874,11 @@
                 userInfoSection.style.display = 'none';
                 errorDisplay.textContent = 'Você precisa estar logado para ver seu perfil.';
                 errorDisplay.style.display = 'block';
-                // Limpa os contadores quando deslogado
                 articlesCountSpan.textContent = 0;
                 materialsCountSpan.textContent = 0;
                 personasCountSpan.textContent = 0;
                 unreadMessagesCountSpan.textContent = 0;
-                documentsCountSpan.textContent = 0;
-                // Limpa a lista de exibição
+                documentsCountSpan.textContent = 0; // Resetar contador de documentos
                 sectionTitle.textContent = "";
                 dataDisplayList.innerHTML = '<p class="empty-state">Selecione uma opção acima para ver os dados.</p>';
                 btnManageTeacher.style.display = 'none';
@@ -945,7 +886,6 @@
             }
         });
 
-        // Listeners para os botões de ação
         btnArticles.addEventListener('click', () => {
             currentActiveList = 'articles';
             sectionTitle.textContent = "Artigos Cadastrados";
@@ -965,22 +905,21 @@
         });
 
         btnReport.addEventListener('click', () => {
-            openReportDialog(); // Abre o diálogo de denúncia sem ID pré-preenchido
+            openReportDialog();
         });
 
-        btnMyMessages.addEventListener('click', displayUserMessages); // Exibe as mensagens
+        btnMyMessages.addEventListener('click', displayUserMessages);
 
-        btnSendMessage.addEventListener('click', openSendMessageDialog); // Abre o diálogo para enviar mensagem
+        btnSendMessage.addEventListener('click', openSendMessageDialog);
 
         btnManageTeacher.addEventListener('click', () => {
             alert("Funcionalidade de gerenciar perfil de professor a ser implementada.");
         });
 
         // Novos Listeners para documentos
-        btnMyDocuments.addEventListener('click', displayUserDocuments); // Exibe os documentos do usuário
-        btnOpenEditor.addEventListener('click', openEditor); // Abre o editor
+        btnMyDocuments.addEventListener('click', displayUserDocuments);
+        btnOpenEditor.addEventListener('click', openEditor);
 
-        // Listeners para fechar diálogos
         document.querySelectorAll('.close-dialog').forEach(button => {
             button.addEventListener('click', (event) => {
                 const dialog = event.target.closest('dialog');
@@ -990,10 +929,7 @@
             });
         });
 
-        // Listener para o botão de envio de denúncia
         submitReportBtn.addEventListener('click', submitReport);
-
-        // Listener para o botão de envio de mensagem
         sendMessageBtn.addEventListener('click', sendNewMessage);
 
     </script>
