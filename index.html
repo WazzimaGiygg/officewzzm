@@ -1,322 +1,1001 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>.WZZM Office Online</title>
-    <link rel="icon" href="favicom.png" type="image/x-icon">
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-analytics-compat.js"></script>
+    <title>Minha Página - WZZM</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.indigo-pink.min.css">
     <style>
         body {
-            font-family: sans-serif;
+            font-family: 'Roboto', 'Helvetica', Arial, sans-serif;
+            background-color: #f5f5f5;
             margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
-
-        .header-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background-color: #3f51b5;
-            color: white;
-            padding: 10px 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-
-        .header-bar h1 {
-            margin: 0;
-            font-size: 24px;
-        }
-
-        .login-section {
-            display: flex;
-            align-items: center;
-        }
-
-        .login-section span {
-            margin-right: 15px;
-            font-weight: bold;
-        }
-
-        .login-section button {
-            background-color: #ff4081;
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-            margin-left: 10px;
-            transition: background-color 0.3s ease;
-        }
-
-        .login-section button:hover {
-            background-color: #e0005e;
-        }
-
-        .navbar {
-            background-color: #f0f0f0;
-            overflow: hidden;
-            border-bottom: 1px solid #ccc;
-            display: flex;
-        }
-
-        .nav-link {
-            background-color: inherit;
-            border: none;
-            outline: none;
-            cursor: pointer;
-            padding: 14px 16px;
-            transition: 0.3s;
-            font-size: 17px;
-            text-decoration: none;
-            color: black;
-        }
-
-        .nav-link:hover {
-            background-color: #ddd;
-        }
-
-        .nav-link.active {
-            background-color: #ccc;
-        }
-
-        .nav-link.disabled {
-            cursor: not-allowed;
-            opacity: 0.6;
-            background-color: #e0e0e0;
-            color: #777;
-        }
-        .nav-link.disabled:hover {
-            background-color: #e0e0e0;
-        }
-
-        main {
-            flex-grow: 1;
             padding: 20px;
-            border: 1px solid #ccc;
-            border-top: none;
         }
-
-        #contentFrame {
-            width: 100%;
-            height: calc(100vh - 170px);
-            border: none;
-            min-height: 500px;
+        .container {
+            max-width: 900px;
+            margin: 20px auto;
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 2px 0 rgba(0,0,0,.14), 0 3px 1px -2px rgba(0,0,0,.2), 0 1px 5px 0 rgba(0,0,0,.12);
         }
-
-        #access-denied-message {
+        h1 {
+            color: #3f51b5;
+            margin-bottom: 25px;
             text-align: center;
-            padding: 50px;
-            font-size: 20px;
-            color: #666;
+        }
+        h2 {
+            color: #3f51b5;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+        }
+        .profile-info p {
+            margin: 8px 0;
+            font-size: 1.1em;
+        }
+        .profile-info strong {
+            color: #555;
+            margin-right: 5px;
+        }
+        .action-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 20px;
+            justify-content: center;
+        }
+        .action-buttons .mdl-button {
+            min-width: 200px;
+            text-align: center;
+        }
+        .data-list {
+            margin-top: 20px;
+            border: 1px solid #eee;
+            border-radius: 5px;
+            padding: 15px;
+            max-height: 300px; /* Limita a altura para rolagem */
+            overflow-y: auto;
+            background-color: #fcfcfc;
+        }
+        .data-list p {
+            border-bottom: 1px dashed #eee;
+            padding: 8px 0;
+            margin: 0;
+            display: flex; /* Para alinhar o ícone e o texto */
+            align-items: center;
+            justify-content: space-between; /* Para empurrar o botão para a direita */
+        }
+        .data-list p.unread {
+            font-weight: bold;
+            background-color: #e8eaf6; /* Um leve destaque para mensagens não lidas */
+        }
+        .data-list p span.message-text, .data-list p span.document-text {
+            flex-grow: 1; /* Permite que o texto ocupe o espaço disponível */
+            cursor: pointer; /* Indica que é clicável */
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .data-list p:last-child {
+            border-bottom: none;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 20px;
+            color: #777;
+            font-style: italic;
+        }
+        .loading-message {
+            text-align: center;
+            padding: 20px;
+            color: #3f51b5;
+        }
+        .error-message {
+            text-align: center;
+            padding: 15px;
+            color: #d32f2f;
+            background-color: #ffebee;
+            border: 1px solid #d32f2f;
+            border-radius: 5px;
+            margin-top: 20px;
+            display: none;
+        }
+        /* Estilos para o diálogo de denúncia/mensagem */
+        .mdl-dialog {
+            width: 80%;
+            max-width: 600px;
+            padding: 20px;
+        }
+        .mdl-dialog__content .mdl-textfield {
+            width: 100%;
+            margin-bottom: 15px;
+        }
+        .mdl-dialog__content .mdl-textfield textarea {
+            min-height: 80px;
+        }
+        .message-actions, .document-actions {
+            display: flex;
+            gap: 5px;
+        }
+        .message-read-btn, .document-action-btn {
+            min-width: 30px !important; /* Ajuste para o botão de olho */
         }
     </style>
 </head>
 <body>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-analytics-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-functions-compat.js"></script>
+    <script src="https://code.getmdl.io/1.3.0/material.min.js"></script>
 
-    <header class="header-bar">
-        <h1>WZZM Office Online - Beta 234</h1>
-        <div class="login-section">
-            <span id="user-info"></span>
-            <button id="login-button" style="display: none;">Login com Google</button>
-            <button id="logout-button" style="display: none;">Sair</button>
-        </div>
-    </header>
+    <div class="container">
+        <h1>Minha Página de Usuário - Beta 0.70</h1>
 
-    <nav class="navbar" id="main-navbar">
-        <a class="nav-link" href="#" data-page-src="editor.html">WZZM Editor de Texto Online</a>
-        <a class="nav-link" href="#" data-page-src="calculadora.html">Calculadora WZZM Online</a>
-        <a class="nav-link" href="#" data-page-src="clinica.html">WZZM Clínica Online</a>
-        <a class="nav-link" href="#" data-page-src="panilhas.html">WZZM Planilha Online</a>
-        <a class="nav-link" href="#" data-page-src="quebradordeimagem.html">Quebrador de Imagem</a>
-    </nav>
+        <div id="loading-message" class="loading-message">Carregando dados do usuário...</div>
+        <div id="error-display" class="error-message" style="display: none;"></div>
 
-    <main>
-        <div id="content-area">
-            <iframe id="contentFrame" src="about:blank" style="display: none;"></iframe>
-            <div id="access-denied-message" style="display: block;">
-                Você precisa estar logado para acessar as ferramentas do WZZM Office Online.
+        <div id="user-info-section" style="display: none;">
+            <h2>Informações do Perfil</h2>
+            <div class="profile-info">
+                <p><strong>UID:</strong> <span id="user-uid"></span></p>
+                <p><strong>Email:</strong> <span id="user-email"></span></p>
+                <p><strong>Nome:</strong> <span id="user-name"></span></p>
+                <p><strong>Sobrenome:</strong> <span id="user-last-name"></span></p>
+                <p><strong>É Administrador:</strong> <span id="user-is-admin"></span></p>
+                <p><strong>É Professor:</strong> <span id="user-is-teacher"></span></p>
+                <p><strong>CPF:</strong> <span id="user-cpf"></span></p>
+                <p><strong>RG:</strong> <span id="user-rg"></span></p>
+            </div>
+
+            <h2>Ações Rápidas</h2>
+            <div class="action-buttons">
+                <button class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored" id="btn-my-documents">
+                    <i class="material-icons">description</i> Meus Documentos (<span id="documents-count">0</span>)
+                </button>
+                <button class="mdl-button mdl-js-button mdl-button--raised mdl-button--accent" id="btn-open-editor">
+                    <i class="material-icons">edit_note</i> Abrir Editor
+                </button>
+                <button class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored" id="btn-articles">
+                    <i class="material-icons">article</i> Artigos Cadastrados (<span id="articles-count">0</span>)
+                </button>
+                <button class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored" id="btn-materials">
+                    <i class="material-icons">folder_open</i> Matérias Cadastradas (<span id="materials-count">0</span>)
+                </button>
+                <button class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored" id="btn-personas">
+                    <i class="material-icons">face</i> Minhas Personas Cadastradas (<span id="personas-count">0</span>)
+                </button>
+                <button class="mdl-button mdl-js-button mdl-button--raised mdl-button--accent" id="btn-report">
+                    <i class="material-icons">flag</i> Denunciar Conteúdo
+                </button>
+                <button class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored" id="btn-my-messages">
+                    <i class="material-icons">email</i> Minhas Mensagens (<span id="unread-messages-count">0</span> não lidas)
+                </button>
+                <button class="mdl-button mdl-js-button mdl-button--raised mdl-button--primary" id="btn-send-message">
+                    <i class="material-icons">send</i> Enviar Nova Mensagem
+                </button>
+                <button class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored" id="btn-manage-teacher" style="display: none;">
+                    <i class="material-icons">school</i> Gerenciar Meu Perfil de Professor
+                </button>
+            </div>
+
+            <h2 id="section-title"></h2>
+            <div id="data-display-list" class="data-list">
+                <p class="empty-state">Selecione uma opção acima para ver os dados.</p>
             </div>
         </div>
-    </main>
+    </div>
+
+    <dialog class="mdl-dialog" id="report-dialog">
+        <h4 class="mdl-dialog__title">Denunciar Conteúdo</h4>
+        <div class="mdl-dialog__content">
+            <p>Por favor, descreva o motivo da denúncia e especifique o tipo de conteúdo.</p>
+            <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                <input class="mdl-textfield__input" type="text" id="report-content-id" disabled>
+                <label class="mdl-textfield__label" for="report-content-id">ID do Conteúdo Denunciado</label>
+            </div>
+            <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                <select class="mdl-textfield__input" id="report-content-type">
+                    <option value="article">Artigo</option>
+                    <option value="material">Material</option>
+                    <option value="persona">Persona</option>
+                    <option value="other">Outro</option>
+                </select>
+                <label class="mdl-textfield__label" for="report-content-type">Tipo de Conteúdo</label>
+            </div>
+            <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label" style="width: 100%;">
+                <textarea class="mdl-textfield__input" type="text" rows="3" id="report-description" required></textarea>
+                <label class="mdl-textfield__label" for="report-description">Descrição da Denúncia (obrigatório)</label>
+            </div>
+        </div>
+        <div class="mdl-dialog__actions">
+            <button type="button" class="mdl-button" id="submit-report-btn">Enviar</button>
+            <button type="button" class="mdl-button close-dialog">Cancelar</button>
+        </div>
+    </dialog>
+
+    <dialog class="mdl-dialog" id="send-message-dialog">
+        <h4 class="mdl-dialog__title">Enviar Nova Mensagem</h4>
+        <div class="mdl-dialog__content">
+            <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                <input class="mdl-textfield__input" type="text" id="recipient-uid-input" required>
+                <label class="mdl-textfield__label" for="recipient-uid-input">UID do Destinatário</label>
+                <span class="mdl-textfield__error">UID do destinatário é obrigatório!</span>
+            </div>
+            <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                <input class="mdl-textfield__input" type="text" id="message-subject-input" required maxlength="100">
+                <label class="mdl-textfield__label" for="message-subject-input">Assunto (máx. 100 caracteres)</label>
+                <span class="mdl-textfield__error">Assunto é obrigatório!</span>
+            </div>
+            <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label" style="width: 100%;">
+                <textarea class="mdl-textfield__input" type="text" rows="5" id="message-body-input" required maxlength="256"></textarea>
+                <label class="mdl-textfield__label" for="message-body-input">Mensagem (máx. 256 caracteres)</label>
+                <span class="mdl-textfield__error">Mensagem é obrigatória e deve ter até 256 caracteres!</span>
+            </div>
+        </div>
+        <div class="mdl-dialog__actions">
+            <button type="button" class="mdl-button mdl-button--colored" id="send-message-btn">Enviar</button>
+            <button type="button" class="mdl-button close-dialog">Cancelar</button>
+        </div>
+    </dialog>
+
+    <dialog class="mdl-dialog" id="message-detail-dialog">
+        <h4 class="mdl-dialog__title" id="message-dialog-subject"></h4>
+        <div class="mdl-dialog__content">
+            <p><strong>De:</strong> <span id="message-dialog-sender"></span></p>
+            <p><strong>Data:</strong> <span id="message-dialog-date"></span></p>
+            <hr>
+            <p id="message-dialog-body"></p>
+        </div>
+        <div class="mdl-dialog__actions">
+            <button type="button" class="mdl-button close-dialog">Fechar</button>
+        </div>
+    </dialog>
+
+    <dialog class="mdl-dialog" id="document-detail-dialog">
+        <h4 class="mdl-dialog__title" id="document-dialog-title"></h4>
+        <div class="mdl-dialog__content">
+            <p><strong>Criado em:</strong> <span id="document-dialog-created-at"></span></p>
+            <p><strong>Última Edição:</strong> <span id="document-dialog-updated-at"></span></p>
+            <hr>
+            <div id="document-dialog-content" contenteditable="false"></div> </div>
+        <div class="mdl-dialog__actions">
+            <button type="button" class="mdl-button close-dialog">Fechar</button>
+            <button type="button" class="mdl-button mdl-button--colored" id="open-editor-from-dialog">Abrir no Editor</button>
+        </div>
+    </dialog>
+
 
     <script>
-        // --- Configuração do Firebase ---
+        // --- Configuração do Firebase com suas chaves e dados originais ---
         const firebaseConfig = {
             apiKey: "AIzaSyB9GkSqTIZ0kbVsba_WOdQeVAETrF9qna0",
             authDomain: "wzzm-ce3fc.firebaseapp.com",
             projectId: "wzzm-ce3fc",
-            storageBucket: "wzzm-ce3fc.firebasestorage.app",
+            storageBucket: "wzzm-ce3fc.appspot.com",
             messagingSenderId: "249427877153",
             appId: "1:249427877153:web:0e4297294794a5aadeb260",
             measurementId: "G-PLKNZNFCQ8"
         };
 
-        // Inicialize o Firebase
-        const app = firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
+        let app;
+        try {
+            app = firebase.app();
+        } catch (e) {
+            app = firebase.initializeApp(firebaseConfig);
+        }
         const firestore = firebase.firestore();
-        const analytics = firebase.analytics();
+        const auth = firebase.auth();
+        const firebaseFunctions = firebase.functions(); // Inicializa o módulo Functions
 
-        // Elementos da UI
-        const loginButton = document.getElementById('login-button');
-        const logoutButton = document.getElementById('logout-button');
-        const userInfo = document.getElementById('user-info');
-        const contentFrame = document.getElementById('contentFrame');
-        const accessDeniedMessage = document.getElementById('access-denied-message');
-        const navLinks = document.querySelectorAll('.nav-link');
+        let currentUser = null; // Usuário logado
+        let currentUserProfile = null; // Dados do perfil do usuário na coleção 'users'
+        let currentUserTeacherProfile = null; // Dados do perfil do professor na coleção 'userteatcher'
 
-        // URL do domínio do seu editor.html (o que será carregado no iframe)
-        // ESSENCIAL: SUBSTITUA PELA ORIGEM REAL DO SEU EDITOR.HTML
-        // Se o editor.html estiver no MESMO DOMÍNIO do index.html (ex: office.wzzm.org/editor.html),
-        // use window.location.origin. Se for um domínio diferente, use o domínio completo.
-        const editorOrigin = window.location.origin; // Exemplo: 'https://office.wzzm.org' ou 'http://localhost:5500'
+        // Elementos HTML
+        const loadingMessage = document.getElementById('loading-message');
+        const errorDisplay = document.getElementById('error-display');
+        const userInfoSection = document.getElementById('user-info-section');
 
-        // Função para carregar a página no iframe
-        function loadPage(pageSrc) {
-            if (auth.currentUser) {
-                contentFrame.src = pageSrc;
-                // Ativa o link de navegação correspondente
-                navLinks.forEach(link => {
-                    if (link.dataset.pageSrc === pageSrc) {
-                        link.classList.add('active');
-                    } else {
-                        link.classList.remove('active');
-                    }
-                });
-            } else {
-                console.warn("Acesso negado: Usuário não logado. Página não carregada.");
-            }
+        const userUidSpan = document.getElementById('user-uid');
+        const userEmailSpan = document.getElementById('user-email');
+        const userNameSpan = document.getElementById('user-name');
+        const userLastNameSpan = document.getElementById('user-last-name');
+        const userIsAdminSpan = document.getElementById('user-is-admin');
+        const userIsTeacherSpan = document.getElementById('user-is-teacher');
+        const userCpfSpan = document.getElementById('user-cpf');
+        const userRgSpan = document.getElementById('user-rg');
+
+        const btnArticles = document.getElementById('btn-articles');
+        const btnMaterials = document.getElementById('btn-materials');
+        const btnPersonas = document.getElementById('btn-personas');
+        const btnManageTeacher = document.getElementById('btn-manage-teacher');
+        const btnReport = document.getElementById('btn-report'); // Botão de denúncia
+        const btnMyMessages = document.getElementById('btn-my-messages'); // Botão de mensagens
+        const btnMyDocuments = document.getElementById('btn-my-documents'); // Novo botão para documentos
+        const btnOpenEditor = document.getElementById('btn-open-editor'); // Botão para abrir o editor
+
+        const articlesCountSpan = document.getElementById('articles-count');
+        const materialsCountSpan = document.getElementById('materials-count');
+        const personasCountSpan = document.getElementById('personas-count');
+        const unreadMessagesCountSpan = document.getElementById('unread-messages-count'); // Contador de mensagens não lidas
+        const documentsCountSpan = document.getElementById('documents-count'); // Novo contador para documentos
+
+        const sectionTitle = document.getElementById('section-title');
+        const dataDisplayList = document.getElementById('data-display-list');
+
+        // Elementos para o diálogo de denúncia
+        const reportDialog = document.getElementById('report-dialog');
+        const submitReportBtn = document.getElementById('submit-report-btn');
+        const reportContentIdInput = document.getElementById('report-content-id');
+        const reportContentTypeSelect = document.getElementById('report-content-type');
+        const reportDescriptionTextarea = document.getElementById('report-description');
+
+        // Elementos para o diálogo de mensagens (detalhes)
+        const messageDetailDialog = document.getElementById('message-detail-dialog');
+        const messageDialogSubject = document.getElementById('message-dialog-subject');
+        const messageDialogSender = document.getElementById('message-dialog-sender');
+        const messageDialogDate = document.getElementById('message-dialog-date');
+        const messageDialogBody = document.getElementById('message-dialog-body');
+
+        // Elementos HTML (Adições para Envio de Mensagem)
+        const btnSendMessage = document.getElementById('btn-send-message');
+        const sendMessageDialog = document.getElementById('send-message-dialog');
+        const recipientUidInput = document.getElementById('recipient-uid-input');
+        const messageSubjectInput = document.getElementById('message-subject-input');
+        const messageBodyInput = document.getElementById('message-body-input');
+        const sendMessageBtn = document.getElementById('send-message-btn');
+
+        // Elementos para o diálogo de detalhes do documento
+        const documentDetailDialog = document.getElementById('document-detail-dialog');
+        const documentDialogTitle = document.getElementById('document-dialog-title');
+        const documentDialogCreatedAt = document.getElementById('document-dialog-created-at');
+        const documentDialogUpdatedAt = document.getElementById('document-dialog-updated-at');
+        const documentDialogContent = document.getElementById('document-dialog-content');
+        const openEditorFromDialogBtn = document.getElementById('open-editor-from-dialog');
+
+        // Cache para nomes de usuários (para evitar buscas repetidas)
+        const userNameCache = {};
+
+        let currentActiveList = null; // Para saber qual lista está ativa (mensagens, documentos, etc.)
+
+        // Função para exibir erros na interface
+        function displayError(message) {
+            errorDisplay.textContent = `Erro: ${message}`;
+            errorDisplay.style.display = 'block';
+            loadingMessage.style.display = 'none';
+            userInfoSection.style.display = 'none';
         }
 
-        // Adiciona event listeners aos links de navegação
-        navLinks.forEach(link => {
-            link.addEventListener('click', function(event) {
-                event.preventDefault();
-                if (!this.classList.contains('disabled')) {
-                    loadPage(this.dataset.pageSrc);
-                }
-            });
-        });
-
-        // Função para desabilitar/habilitar links de navegação
-        function setNavLinksEnabled(enabled) {
-            navLinks.forEach(link => {
-                if (enabled) {
-                    link.classList.remove('disabled');
-                    link.removeAttribute('disabled');
+        // Função para carregar o perfil do usuário
+        async function loadUserProfile(uid) {
+            try {
+                const userDoc = await firestore.collection('users').doc(uid).get();
+                if (userDoc.exists) {
+                    currentUserProfile = userDoc.data();
+                    userUidSpan.textContent = uid;
+                    userEmailSpan.textContent = currentUser.email;
+                    userNameSpan.textContent = currentUserProfile.firstName || 'Não definido';
+                    userLastNameSpan.textContent = currentUserProfile.lastName || 'Não definido';
+                    userIsAdminSpan.textContent = currentUserProfile.isAdmin ? 'Sim' : 'Não';
                 } else {
-                    link.classList.add('disabled');
+                    // Se o documento 'users' não existir, cria um perfil básico
+                    await firestore.collection('users').doc(uid).set({
+                        email: currentUser.email,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        isAdmin: false // Define como false por padrão
+                    });
+                    currentUserProfile = { email: currentUser.email, isAdmin: false };
+                    userUidSpan.textContent = uid;
+                    userEmailSpan.textContent = currentUser.email;
+                    userNameSpan.textContent = 'Não definido';
+                    userLastNameSpan.textContent = 'Não definido';
+                    userIsAdminSpan.textContent = 'Não';
                 }
-            });
+            } catch (error) {
+                console.error("Erro ao carregar/criar perfil de usuário:", error);
+                displayError("Erro ao carregar perfil: " + error.message);
+                return;
+            }
+
+            // Tenta carregar dados do professor
+            try {
+                const teacherDocSnapshot = await firestore.collection('userteatcher')
+                    .where('googleUid', '==', uid)
+                    .get();
+                if (!teacherDocSnapshot.empty) {
+                    currentUserTeacherProfile = teacherDocSnapshot.docs[0].data();
+                    userIsTeacherSpan.textContent = 'Sim';
+                    userCpfSpan.textContent = currentUserTeacherProfile.cpf || 'Não definido';
+                    userRgSpan.textContent = currentUserTeacherProfile.rg || 'Não definido';
+                    btnManageTeacher.style.display = 'inline-block'; // Mostra botão de gerenciar professor
+                } else {
+                    userIsTeacherSpan.textContent = 'Não';
+                    userCpfSpan.textContent = 'Não aplicável';
+                    userRgSpan.textContent = 'Não aplicável';
+                }
+            } catch (error) {
+                console.error("Erro ao carregar perfil de professor:", error);
+                userIsTeacherSpan.textContent = 'Erro';
+                userCpfSpan.textContent = 'Erro';
+                userRgSpan.textContent = 'Erro';
+            }
+
+            loadingMessage.style.display = 'none';
+            userInfoSection.style.display = 'block';
+
+            // Atualiza contagens e botões MDL
+            await updateCounts();
+            if (window.componentHandler) {
+                window.componentHandler.upgradeElements(userInfoSection);
+                const actionButtonsDiv = document.querySelector('.action-buttons');
+                if (actionButtonsDiv) {
+                    window.componentHandler.upgradeElements(actionButtonsDiv.querySelectorAll('.mdl-button'));
+                }
+            }
         }
 
-        // Listener de estado de autenticação
-        auth.onAuthStateChanged(user => {
-            if (user) {
-                // Usuário logado
-                userInfo.textContent = `Olá, ${user.displayName || user.email}!`;
-                loginButton.style.display = 'none';
-                logoutButton.style.display = 'inline-block';
-                
-                contentFrame.style.display = 'block';
-                accessDeniedMessage.style.display = 'none';
-                setNavLinksEnabled(true);
+        // Função para atualizar as contagens de artigos, materiais, personas, documentos e mensagens
+        async function updateCounts() {
+            if (!currentUser) return;
 
-                // Carrega a página padrão após o login se o iframe estiver vazio
-                if (contentFrame.src === "about:blank" || contentFrame.src === "") {
-                    const firstPageSrc = navLinks[0]?.dataset.pageSrc;
-                    if (firstPageSrc) {
-                        loadPage(firstPageSrc);
-                    }
-                }
+            try {
+                const articlesQuery = await firestore.collection('articlesdoc').where('userId', '==', currentUser.uid).get();
+                articlesCountSpan.textContent = articlesQuery.size;
 
-                // *** ADIÇÃO CRÍTICA AQUI: Enviar o UID para o iframe ***
-                // Certifique-se de que o iframe esteja carregado antes de enviar a mensagem
-                // ou use um evento 'load' no iframe para garantir que ele esteja pronto.
-                // Para simplificar, vamos usar um pequeno atraso, mas 'load' é mais robusto.
-                contentFrame.onload = () => {
-                    // Após o iframe carregar a nova página (ou recarregar)
-                    if (contentFrame.contentWindow) {
-                        contentFrame.contentWindow.postMessage(
-                            { type: 'AUTH_UID', uid: user.uid },
-                            editorOrigin // Use a origem específica do seu editor
-                        );
-                        console.log("UID enviado para o iframe:", user.uid);
-                    }
-                };
+                const materialsQuery = await firestore.collection('materials').where('authorUid', '==', currentUser.uid).get();
+                materialsCountSpan.textContent = materialsQuery.size;
 
-                // Se o iframe já estiver carregado e o user já estiver autenticado na primeira carga
-                // Disparar o envio da mensagem imediatamente também
-                if (contentFrame.contentWindow && contentFrame.src !== "about:blank") {
-                     contentFrame.contentWindow.postMessage(
-                        { type: 'AUTH_UID', uid: user.uid },
-                        editorOrigin
-                    );
-                    console.log("UID enviado imediatamente para o iframe (já carregado):", user.uid);
-                }
+                const personasQuery = await firestore.collection('minhapersona').where('authorUid', '==', currentUser.uid).get();
+                personasCountSpan.textContent = personasQuery.size;
 
+                // Contar mensagens não lidas
+                const unreadMessagesQuery = await firestore.collection('userEmails')
+                    .where('recipientId', '==', currentUser.uid)
+                    .where('read', '==', false)
+                    .get();
+                unreadMessagesCountSpan.textContent = unreadMessagesQuery.size;
+
+                // Contar documentos do usuário
+                const documentsQuery = await firestore.collection('docoffice').doc(currentUser.uid).collection('documents').get();
+                documentsCountSpan.textContent = documentsQuery.size;
+
+            } catch (error) {
+                console.error("Erro ao atualizar contagens:", error);
+            }
+        }
+
+        // Função para abrir o diálogo de denúncia com o ID do conteúdo pré-preenchido
+        function openReportDialog(contentId, contentType) {
+            reportContentIdInput.value = contentId || ''; // Usar string vazia para limpar
+            reportContentTypeSelect.value = contentType || 'other';
+            reportDescriptionTextarea.value = ''; // Limpa a descrição anterior
+            reportDialog.showModal();
+            // Atualiza o MDL Textfield para exibir o valor preenchido
+            if (window.componentHandler) {
+                window.componentHandler.upgradeElement(reportContentIdInput.parentElement);
+                reportContentIdInput.parentElement.MaterialTextfield.checkDirty(); // Força a atualização do estado visual
+                window.componentHandler.upgradeElement(reportContentTypeSelect.parentElement);
+                reportContentTypeSelect.parentElement.MaterialTextfield.checkDirty();
+                window.componentHandler.upgradeElement(reportDescriptionTextarea.parentElement);
+                reportDescriptionTextarea.parentElement.MaterialTextfield.checkDirty();
+            }
+        }
+
+        // Função para enviar a denúncia
+        async function submitReport() {
+            if (!currentUser) {
+                alert("Você precisa estar logado para enviar denúncias.");
+                return;
+            }
+
+            const contentId = reportContentIdInput.value.trim();
+            const contentType = reportContentTypeSelect.value;
+            const description = reportDescriptionTextarea.value.trim();
+
+            // Validação visual dos campos MDL
+            let isValid = true;
+            if (!description) {
+                reportDescriptionTextarea.parentElement.classList.add('is-invalid');
+                isValid = false;
             } else {
-                // Usuário não logado
-                userInfo.textContent = '';
-                loginButton.style.display = 'inline-block';
-                logoutButton.style.display = 'none';
+                reportDescriptionTextarea.parentElement.classList.remove('is-invalid');
+            }
+            if (!contentId && contentType !== 'other') {
+                reportContentIdInput.parentElement.classList.add('is-invalid');
+                isValid = false;
+            } else {
+                reportContentIdInput.parentElement.classList.remove('is-invalid');
+            }
 
-                contentFrame.style.display = 'none';
-                accessDeniedMessage.style.display = 'block';
-                setNavLinksEnabled(false);
-                
-                contentFrame.src = "about:blank";
-                navLinks.forEach(link => link.classList.remove('active'));
+            if (!isValid) {
+                alert("Por favor, preencha todos os campos obrigatórios corretamente.");
+                return;
+            }
 
-                // *** Enviar UID nulo para o iframe quando o usuário desloga ***
-                // Isso informa ao editor que não há usuário autenticado
-                if (contentFrame.contentWindow) {
-                    contentFrame.contentWindow.postMessage(
-                        { type: 'AUTH_UID', uid: null },
-                        editorOrigin
-                    );
-                    console.log("UID nulo enviado para o iframe (usuário deslogado).");
+            try {
+                await firestore.collection('reports').add({
+                    reportedBy: currentUser.uid,
+                    contentId: contentId,
+                    contentType: contentType,
+                    description: description,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    status: 'pending' // Novo campo para o status da denúncia
+                });
+                alert("Denúncia enviada com sucesso! Agradecemos sua colaboração.");
+                reportDialog.close();
+            } catch (error) {
+                console.error("Erro ao enviar denúncia:", error);
+                alert("Ocorreu um erro ao enviar a denúncia. Tente novamente.");
+            }
+        }
+
+        // Nova função para abrir o diálogo de envio de mensagem
+        function openSendMessageDialog() {
+            recipientUidInput.value = '';
+            messageSubjectInput.value = '';
+            messageBodyInput.value = '';
+            // Força a atualização do MDL Textfield para resetar o estado
+            if (window.componentHandler) {
+                window.componentHandler.upgradeElement(recipientUidInput.parentElement);
+                recipientUidInput.parentElement.MaterialTextfield.checkDirty();
+                recipientUidInput.parentElement.MaterialTextfield.checkValidity();
+
+                window.componentHandler.upgradeElement(messageSubjectInput.parentElement);
+                messageSubjectInput.parentElement.MaterialTextfield.checkDirty();
+                messageSubjectInput.parentElement.MaterialTextfield.checkValidity();
+
+                window.componentHandler.upgradeElement(messageBodyInput.parentElement);
+                messageBodyInput.parentElement.MaterialTextfield.checkDirty();
+                messageBodyInput.parentElement.MaterialTextfield.checkValidity();
+            }
+            sendMessageDialog.showModal();
+        }
+
+        // Nova função para enviar a mensagem
+        async function sendNewMessage() {
+            if (!currentUser) {
+                alert("Você precisa estar logado para enviar mensagens.");
+                return;
+            }
+
+            const recipientUid = recipientUidInput.value.trim();
+            const subject = messageSubjectInput.value.trim();
+            const message = messageBodyInput.value.trim();
+
+            // Validação simples
+            let isValid = true;
+            if (!recipientUid) {
+                recipientUidInput.parentElement.classList.add('is-invalid');
+                isValid = false;
+            } else {
+                recipientUidInput.parentElement.classList.remove('is-invalid');
+            }
+            if (!subject) {
+                messageSubjectInput.parentElement.classList.add('is-invalid');
+                isValid = false;
+            } else {
+                messageSubjectInput.parentElement.classList.remove('is-invalid');
+            }
+            if (!message || message.length > 256) {
+                messageBodyInput.parentElement.classList.add('is-invalid');
+                isValid = false;
+            } else {
+                messageBodyInput.parentElement.classList.remove('is-invalid');
+            }
+
+            if (!isValid) {
+                alert("Por favor, preencha todos os campos obrigatórios corretamente.");
+                return;
+            }
+
+            // Opcional: Verificar se o UID do destinatário existe na coleção 'users'
+            try {
+                const recipientUserDoc = await firestore.collection('users').doc(recipientUid).get();
+                if (!recipientUserDoc.exists) {
+                    alert("O UID do destinatário não corresponde a um usuário válido.");
+                    return;
                 }
+            } catch (error) {
+                console.error("Erro ao verificar UID do destinatário:", error);
+                alert("Erro ao verificar o destinatário. Tente novamente.");
+                return;
+            }
+
+            try {
+                await firestore.collection('userEmails').add({
+                    recipientId: recipientUid,
+                    senderId: currentUser.uid,
+                    senderEmail: currentUser.email, // Opcional, para referência
+                    subject: subject,
+                    message: message,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    read: false // Nova mensagem é sempre não lida
+                });
+
+                alert("Mensagem enviada com sucesso!");
+                sendMessageDialog.close(); // Fecha o diálogo
+                // Recarrega a lista de mensagens do usuário se ele estiver visualizando-as
+                if (currentActiveList === 'messages') { // Verifica se está na seção de mensagens
+                    displayUserMessages();
+                }
+                updateCounts(); // Atualiza o contador de mensagens não lidas
+            } catch (error) {
+                console.error("Erro ao enviar mensagem:", error);
+                alert("Erro ao enviar mensagem. Verifique o UID do destinatário e tente novamente.");
+            }
+        }
+
+        // Função para buscar o nome do usuário a partir do UID
+        async function getUserName(uid) {
+            if (userNameCache[uid]) {
+                return userNameCache[uid];
+            }
+            try {
+                const userDoc = await firestore.collection('users').doc(uid).get();
+                if (userDoc.exists) {
+                    const data = userDoc.data();
+                    const name = data.firstName && data.lastName ? `${data.firstName} ${data.lastName}` : data.email || uid;
+                    userNameCache[uid] = name;
+                    return name;
+                }
+            } catch (error) {
+                console.error("Erro ao buscar nome do usuário:", error);
+            }
+            return uid; // Retorna o UID se o nome não for encontrado
+        }
+
+        // Função para exibir o conteúdo da mensagem em um diálogo e marcar como lida
+        async function displayMessageInDialog(messageData, messageId, isRead) {
+            messageDialogSubject.textContent = messageData.subject || 'Sem Assunto';
+            // Buscar o nome do remetente
+            const senderName = await getUserName(messageData.senderId);
+            messageDialogSender.textContent = senderName;
+
+            messageDialogDate.textContent = messageData.timestamp ? new Date(messageData.timestamp.toDate()).toLocaleString('pt-BR') : 'Data Indefinida';
+            messageDialogBody.textContent = messageData.message || 'Mensagem vazia.';
+
+            messageDetailDialog.showModal();
+
+            // Se a mensagem não foi lida, marca como lida no Firestore
+            if (!isRead) {
+                try {
+                    await firestore.collection('userEmails').doc(messageId).update({ read: true });
+                    // Atualiza o contador de mensagens não lidas e a lista
+                    await updateCounts();
+                    // Opcional: Atualiza o status da mensagem na lista sem recarregar tudo
+                    const messageElement = document.querySelector(`.message-item[data-message-id="${messageId}"]`);
+                    if (messageElement) {
+                        messageElement.classList.remove('unread');
+                        const icon = messageElement.querySelector('.message-text .material-icons');
+                        if (icon) {
+                            icon.textContent = 'drafts'; // Ícone de mensagem lida
+                            icon.style.color = ''; // Remove a cor de destaque
+                        }
+                        const readBtn = messageElement.querySelector('.message-read-btn');
+                        if (readBtn) {
+                            readBtn.title = 'Marcar como não lida';
+                            readBtn.querySelector('.material-icons').textContent = 'visibility_off'; // Icone de olho fechado
+                        }
+                    }
+                } catch (error) {
+                    console.error("Erro ao marcar mensagem como lida:", error);
+                }
+            }
+        }
+
+        // Função para alternar o status de lida/não lida de uma mensagem
+        async function toggleMessageReadStatus(messageId, currentReadStatus, event) {
+            event.stopPropagation(); // Evita que o clique no botão ative a visualização da mensagem
+
+            try {
+                await firestore.collection('userEmails').doc(messageId).update({ read: !currentReadStatus });
+                await updateCounts(); // Atualiza o contador de não lidas
+                displayUserMessages(); // Recarrega a lista para refletir a mudança
+            } catch (error) {
+                console.error("Erro ao alternar status da mensagem:", error);
+                alert("Erro ao atualizar status da mensagem.");
+            }
+        }
+
+
+        // Função para deletar uma mensagem
+        async function deleteMessage(messageId, event) {
+            event.stopPropagation(); // Evita que o clique no botão ative a visualização da mensagem
+            if (!confirm('Tem certeza que deseja excluir esta mensagem?')) {
+                return;
+            }
+            try {
+                await firestore.collection('userEmails').doc(messageId).delete();
+                alert("Mensagem excluída com sucesso!");
+                await updateCounts(); // Atualiza contadores
+                displayUserMessages(); // Recarrega a lista de mensagens
+            } catch (error) {
+                console.error("Erro ao excluir mensagem:", error);
+                alert("Erro ao excluir mensagem.");
+            }
+        }
+
+        // Função para exibir as mensagens do usuário
+        async function displayUserMessages() {
+            if (!currentUser) {
+                dataDisplayList.innerHTML = '<p class="empty-state">Faça login para ver suas mensagens.</p>';
+                return;
+            }
+
+            currentActiveList = 'messages';
+            sectionTitle.textContent = "Minhas Mensagens Recebidas";
+            dataDisplayList.innerHTML = '<p class="loading-message">Carregando mensagens...</p>';
+
+            try {
+                const querySnapshot = await firestore.collection('userEmails')
+                    .where('recipientId', '==', currentUser.uid)
+                    .orderBy('timestamp', 'desc')
+                    .get();
+
+                if (querySnapshot.empty) {
+                    dataDisplayList.innerHTML = '<p class="empty-state">Você não tem mensagens.</p>';
+                    return;
+                }
+
+                dataDisplayList.innerHTML = '';
+                querySnapshot.forEach(doc => {
+                    const messageData = doc.data();
+                    const messageId = doc.id;
+                    const messageElement = document.createElement('p');
+                    messageElement.classList.add('message-item');
+                    messageElement.dataset.messageId = messageId;
+                    if (!messageData.read) {
+                        messageElement.classList.add('unread');
+                    }
+
+                    const senderName = userNameCache[messageData.senderId] || messageData.senderEmail || messageData.senderId;
+                    const displaySubject = messageData.subject ? messageData.subject.substring(0, 50) + (messageData.subject.length > 50 ? '...' : '') : 'Sem Assunto';
+                    const icon = messageData.read ? 'drafts' : 'email'; // 'drafts' para lido, 'email' para não lido
+                    const iconColor = messageData.read ? '' : '#4285f4'; // Cor azul para não lido
+
+                    messageElement.innerHTML = `
+                        <span class="message-text" onclick="displayMessageInDialog(${JSON.stringify(messageData)}, '${messageId}', ${messageData.read})">
+                            <i class="material-icons" style="color: ${iconColor};">${icon}</i>
+                            ${displaySubject} <small>(de: ${senderName})</small>
+                        </span>
+                        <div class="message-actions">
+                            <button class="mdl-button mdl-js-button mdl-button--icon message-read-btn" title="${messageData.read ? 'Marcar como não lida' : 'Marcar como lida'}" onclick="toggleMessageReadStatus('${messageId}', ${messageData.read}, event)">
+                                <i class="material-icons">${messageData.read ? 'visibility_off' : 'visibility'}</i>
+                            </button>
+                            <button class="mdl-button mdl-js-button mdl-button--icon" title="Excluir Mensagem" onclick="deleteMessage('${messageId}', event)">
+                                <i class="material-icons">delete</i>
+                            </button>
+                        </div>
+                    `;
+                    dataDisplayList.appendChild(messageElement);
+                });
+
+                if (window.componentHandler) {
+                    window.componentHandler.upgradeElements(dataDisplayList);
+                }
+
+            } catch (error) {
+                console.error("Erro ao carregar mensagens:", error);
+                dataDisplayList.innerHTML = `<p class="error-message">Erro ao carregar mensagens: ${error.message}</p>`;
+            }
+        }
+
+
+        // --- NOVAS FUNÇÕES PARA DOCUMENTOS ---
+
+        // Função para exibir os documentos do usuário
+        async function displayUserDocuments() {
+            if (!currentUser) {
+                dataDisplayList.innerHTML = '<p class="empty-state">Faça login para ver seus documentos.</p>';
+                return;
+            }
+
+            currentActiveList = 'documents';
+            sectionTitle.textContent = "Meus Documentos";
+            dataDisplayList.innerHTML = '<p class="loading-message">Carregando documentos...</p>';
+
+            try {
+                // Acessa a subcoleção 'documents' dentro do doc do UID do usuário em 'docoffice'
+                const documentsRef = firestore.collection('docoffice').doc(currentUser.uid).collection('documents');
+                const querySnapshot = await documentsRef.orderBy('updatedAt', 'desc').get();
+
+                if (querySnapshot.empty) {
+                    dataDisplayList.innerHTML = '<p class="empty-state">Você não tem documentos salvos. Que tal criar um novo no editor?</p>';
+                    return;
+                }
+
+                dataDisplayList.innerHTML = ''; // Limpa o estado de carregamento/vazio
+
+                querySnapshot.forEach(doc => {
+                    const documentData = doc.data();
+                    const documentId = doc.id;
+                    const documentElement = document.createElement('p');
+                    documentElement.classList.add('document-item');
+                    documentElement.dataset.documentId = documentId;
+
+                    const title = documentData.name || 'Documento Sem Título';
+                    const updatedAt = documentData.updatedAt ? new Date(documentData.updatedAt.toDate()).toLocaleString('pt-BR') : 'Data Indefinida';
+
+                    documentElement.innerHTML = `
+                        <span class="document-text" onclick="displayDocumentInDialog(${JSON.stringify(documentData)}, '${documentId}')">
+                            <i class="material-icons">description</i>
+                            ${title} <small>(Última edição: ${updatedAt})</small>
+                        </span>
+                        <div class="document-actions">
+                            <button class="mdl-button mdl-js-button mdl-button--icon document-action-btn" title="Editar no Editor" onclick="openEditorWithDocument('${documentId}', event)">
+                                <i class="material-icons">edit</i>
+                            </button>
+                            <button class="mdl-button mdl-js-button mdl-button--icon document-action-btn" title="Excluir Documento" onclick="deleteDocument('${documentId}', event)">
+                                <i class="material-icons">delete</i>
+                            </button>
+                        </div>
+                    `;
+                    dataDisplayList.appendChild(documentElement);
+                });
+
+                if (window.componentHandler) {
+                    window.componentHandler.upgradeElements(dataDisplayList);
+                }
+
+            } catch (error) {
+                console.error("Erro ao carregar documentos:", error);
+                // Permissão negada é um erro comum se as regras não estiverem certas
+                if (error.code === 'permission-denied') {
+                    dataDisplayList.innerHTML = `<p class="error-message">Erro de permissão: Suas regras do Firebase não permitem acesso a este documento. Verifique as regras do Firestore.</p>`;
+                } else {
+                    dataDisplayList.innerHTML = `<p class="error-message">Erro ao carregar documentos: ${error.message}</p>`;
+                }
+            }
+        }
+
+        // Função para exibir o conteúdo do documento em um diálogo
+        async function displayDocumentInDialog(documentData, documentId) {
+            documentDialogTitle.textContent = documentData.name || 'Documento Sem Título';
+            documentDialogCreatedAt.textContent = documentData.createdAt ? new Date(documentData.createdAt.toDate()).toLocaleString('pt-BR') : 'Indefinida';
+            documentDialogUpdatedAt.textContent = documentData.updatedAt ? new Date(documentData.updatedAt.toDate()).toLocaleString('pt-BR') : 'Indefinida';
+            documentDialogContent.innerHTML = documentData.content || 'Documento vazio.'; // Usa innerHTML para renderizar o HTML
+            documentDetailDialog.showModal();
+
+            // Adiciona o listener para o botão "Abrir no Editor" no diálogo
+            openEditorFromDialogBtn.onclick = (event) => {
+                event.stopPropagation();
+                documentDetailDialog.close(); // Fecha o diálogo
+                openEditorWithDocument(documentId); // Abre o editor com o ID do documento
+            };
+        }
+
+        // Função para abrir o editor (editor.html)
+        function openEditor() {
+            // Abre o editor em uma nova aba ou janela
+            // Esta linha pode ser adaptada para abrir em um modal, iframe, etc.
+            // Para este exemplo, vou abrir em uma nova janela para simular o comportamento de "abrir app".
+            window.open('editor.html', '_blank');
+        }
+
+        // Função para abrir o editor passando um ID de documento específico (PARA FUTURA IMPLEMENTAÇÃO)
+        // Por enquanto, o editor.html não tem lógica para receber um ID e carregar apenas um doc.
+        // Ele carrega TODOS os docs do usuário. Esta função é um placeholder para futura expansão.
+        function openEditorWithDocument(documentId) {
+            // Atualmente, o editor.html carrega TODOS os documentos do usuário.
+            // Para carregar UM documento específico, você precisaria modificar editor.html
+            // para aceitar um parâmetro na URL (ex: editor.html?docId=xyz)
+            // e ter lógica interna para carregar aquele doc e focar nele.
+            console.log(`Abrindo editor para o documento com ID: ${documentId}.`);
+            // Por enquanto, apenas abre o editor principal.
+            openEditor();
+            alert("A funcionalidade de abrir um documento específico no editor ainda não está totalmente implementada. O editor será aberto para que você possa carregar seus documentos.");
+        }
+
+
+        // Função para deletar um documento
+        async function deleteDocument(documentId, event) {
+            event.stopPropagation(); // Evita que o clique no botão ative a visualização do documento
+            if (!currentUser) {
+                alert("Você precisa estar logado para excluir documentos.");
+                return;
+            }
+            if (!confirm('Tem certeza que deseja excluir este documento? Esta ação é irreversível.')) {
+                return;
+            }
+            try {
+                await firestore.collection('docoffice').doc(currentUser.uid).collection('documents').doc(documentId).delete();
+                alert("Documento excluído com sucesso!");
+                await updateCounts(); // Atualiza contadores
+                displayUserDocuments(); // Recarrega a lista de documentos
+            } catch (error) {
+                console.error("Erro ao excluir documento:", error);
+                alert("Erro ao excluir documento: " + error.message);
+            }
+        }
+
+
+        // --- Listeners de Eventos ---
+
+        // Listener de autenticação do Firebase
+        auth.onAuthStateChanged(async (user) => {
+            if (user) {
+                currentUser = user;
+                console.log("Usuário logado:", currentUser.displayName || currentUser.email);
+                await loadUserProfile(currentUser.uid);
+            } else {
+                currentUser = null;
+                currentUserProfile = null;
+                currentUserTeacherProfile = null;
+                loadingMessage.style.display = 'none';
+                userInfoSection.style.display = 'none';
+                errorDisplay.textContent = 'Você precisa estar logado para ver seu perfil.';
+                errorDisplay.style.display = 'block';
+                // Limpa os contadores quando deslogado
+                articlesCountSpan.textContent = 0;
+                materialsCountSpan.textContent = 0;
+                personasCountSpan.textContent = 0;
+                unreadMessagesCountSpan.textContent = 0;
+                documentsCountSpan.textContent = 0;
+                // Limpa a lista de exibição
+                sectionTitle.textContent = "";
+                dataDisplayList.innerHTML = '<p class="empty-state">Selecione uma opção acima para ver os dados.</p>';
+                btnManageTeacher.style.display = 'none';
+                console.log("Usuário deslogado.");
             }
         });
 
-        // Evento de clique para o botão de Login
-        loginButton.addEventListener('click', () => {
-            const provider = new firebase.auth.GoogleAuthProvider();
-            auth.signInWithPopup(provider)
-                .then((result) => {
-                    console.log("Usuário logado:", result.user);
-                })
-                .catch((error) => {
-                    console.error("Erro de login:", error);
-                    alert(`Erro ao fazer login: ${error.message}`);
-                });
+        // Listeners para os botões de ação
+        btnArticles.addEventListener('click', () => {
+            currentActiveList = 'articles';
+            sectionTitle.textContent = "Artigos Cadastrados";
+            dataDisplayList.innerHTML = '<p class="empty-state">Funcionalidade a ser implementada.</p>';
         });
 
-        // Evento de clique para o botão de Logout
-        logoutButton.addEventListener('click', () => {
-            auth.signOut().then(() => {
-                console.log("Usuário deslogado.");
-            }).catch((error) => {
-                console.error("Erro ao fazer logout:", error);
-                alert(`Erro ao fazer logout: ${error.message}`);
+        btnMaterials.addEventListener('click', () => {
+            currentActiveList = 'materials';
+            sectionTitle.textContent = "Matérias Cadastradas";
+            dataDisplayList.innerHTML = '<p class="empty-state">Funcionalidade a ser implementada.</p>';
+        });
+
+        btnPersonas.addEventListener('click', () => {
+            currentActiveList = 'personas';
+            sectionTitle.textContent = "Minhas Personas Cadastradas";
+            dataDisplayList.innerHTML = '<p class="empty-state">Funcionalidade a ser implementada.</p>';
+        });
+
+        btnReport.addEventListener('click', () => {
+            openReportDialog(); // Abre o diálogo de denúncia sem ID pré-preenchido
+        });
+
+        btnMyMessages.addEventListener('click', displayUserMessages); // Exibe as mensagens
+
+        btnSendMessage.addEventListener('click', openSendMessageDialog); // Abre o diálogo para enviar mensagem
+
+        btnManageTeacher.addEventListener('click', () => {
+            alert("Funcionalidade de gerenciar perfil de professor a ser implementada.");
+        });
+
+        // Novos Listeners para documentos
+        btnMyDocuments.addEventListener('click', displayUserDocuments); // Exibe os documentos do usuário
+        btnOpenEditor.addEventListener('click', openEditor); // Abre o editor
+
+        // Listeners para fechar diálogos
+        document.querySelectorAll('.close-dialog').forEach(button => {
+            button.addEventListener('click', (event) => {
+                const dialog = event.target.closest('dialog');
+                if (dialog) {
+                    dialog.close();
+                }
             });
         });
 
-        // Inicializa o estado dos links de navegação ao carregar a página
-        document.addEventListener('DOMContentLoaded', () => {
-            setNavLinksEnabled(false);
-        });
+        // Listener para o botão de envio de denúncia
+        submitReportBtn.addEventListener('click', submitReport);
+
+        // Listener para o botão de envio de mensagem
+        sendMessageBtn.addEventListener('click', sendNewMessage);
+
     </script>
-<p style="text-align: center;">Site administrador pela <a href="wzzm.org">Wiki Zone Zero Mod</a></p>
-<p style="text-align: center;">&nbsp;</p>
 </body>
 </html>
