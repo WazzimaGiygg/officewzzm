@@ -3,648 +3,147 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WZZM Editor de Texto Online</title>
+    <title>.WZZM Office Online</title>
+    <link rel="icon" href="favicom.png" type="image/x-icon">
     <style>
-        /* Seu CSS existente - Mantido como está */
         body {
-            font-family: 'Arial', sans-serif;
-            line-height: 1.6;
-            background-color: #f4f4f4;
-            margin: 20px;
+            font-family: sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
         }
-        #tab-container {
-            background-color: #ddd;
+
+        .header-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #3f51b5;
+            color: white;
+            padding: 10px 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .header-bar h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        /* Removida a seção de login/logout do cabeçalho do index.html */
+        .login-section {
+            display: none; /* Oculta a seção de login/logout no header do index */
+        }
+
+        .navbar {
+            background-color: #f0f0f0;
+            overflow: hidden;
             border-bottom: 1px solid #ccc;
             display: flex;
-            padding: 10px;
-            border-radius: 5px 5px 0 0;
-            overflow-x: auto;
         }
-        .tab {
-            padding: 8px 15px;
-            margin-right: 5px;
-            border: 1px solid #ccc;
-            border-bottom: none;
-            background-color: #f0f0f0;
-            cursor: pointer;
-            border-radius: 5px 5px 0 0;
-            display: flex;
-            align-items: center;
-            white-space: nowrap;
-        }
-        .tab.active {
-            background-color: #fff;
-            font-weight: bold;
-        }
-        .tab input[type="text"] {
-            border: none;
-            background: none;
-            font-size: inherit;
-            padding: 0;
-            margin-left: 5px;
-            width: 100px;
-        }
-        .tab .close-tab {
-            margin-left: 10px;
-            cursor: pointer;
-            color: #888;
-            font-weight: bold;
-        }
-        .tab .close-tab:hover {
-            color: #333;
-        }
-        #content-container {
-            background-color: #fff;
-            border: 1px solid #ccc;
-            padding: 15px;
-            border-radius: 0 5px 5px 5px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        }
-        .document-editor {
-            width: 100%;
-            min-height: 300px;
-            font-size: 16px;
-            line-height: 1.7;
+
+        .nav-link {
+            background-color: inherit;
             border: none;
             outline: none;
-            display: none;
-        }
-        .document-editor.active {
-            display: block;
-        }
-        #toolbar {
-            background-color: #e0e0e0;
-            padding: 10px;
-            border-radius: 5px;
-            margin-bottom: 15px;
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-        #toolbar > * {
-            margin-bottom: 5px;
-        }
-        #toolbar button, #toolbar select, #add-tab-btn, #save-firebase-btn, #load-firebase-btn {
-            padding: 8px 12px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
             cursor: pointer;
-            font-size: 14px;
+            padding: 14px 16px;
+            transition: 0.3s;
+            font-size: 17px;
+            text-decoration: none;
+            color: black;
         }
-        #toolbar select {
-            padding: 7px;
+
+        .nav-link:hover {
+            background-color: #ddd;
         }
-        #toolbar button:hover, #add-tab-btn:hover, #save-firebase-btn:hover, #load-firebase-btn:hover {
-            background-color: #d0d0d0;
+
+        .nav-link.active {
+            background-color: #ccc;
         }
-        #link-modal {
-            display: none;
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: #fff;
+
+        /* Removida a classe disabled, pois o acesso é liberado, e a autenticação ocorre dentro do iframe */
+        main {
+            flex-grow: 1;
             padding: 20px;
             border: 1px solid #ccc;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            z-index: 1000;
-            border-radius: 5px;
+            border-top: none;
         }
-        #link-modal label {
-            display: block;
-            margin-bottom: 5px;
-        }
-        #link-modal input[type="text"] {
+
+        #contentFrame {
             width: 100%;
-            padding: 8px;
-            margin-bottom: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            box-sizing: border-box;
-        }
-        #link-modal button {
-            padding: 8px 15px;
+            height: calc(100vh - 170px);
             border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-            margin-right: 5px;
+            min-height: 500px;
         }
-        #link-modal button.confirm {
-            background-color: #5cb85c;
-            color: white;
-        }
-        #link-modal button.cancel {
-            background-color: #f44336;
-            color: white;
-        }
-        #editor-status-message {
-            margin-top: 10px;
-            padding: 10px;
-            border: 1px solid #ffeb3b; /* Amarelo claro para avisos */
-            background-color: #fffde7; /* Amarelo muito claro */
-            color: #ff9800; /* Laranja para o texto */
-            border-radius: 5px;
-            text-align: center;
-            font-weight: bold;
-            display: none; /* Inicia oculto */
+
+        /* A mensagem de acesso negado será exibida DENTRO do iframe agora, se a página precisar */
+        #access-denied-message {
+            display: none; /* Oculta esta mensagem, pois o controle de acesso é no iframe */
         }
     </style>
 </head>
 <body>
-    <h1>Editor de Documentos com Abas - V007474</h1>
 
-    <div id="toolbar">
-        <button onclick="formatText('bold')"><i class="fas fa-bold"></i> Negrito</button>
-        <button onclick="formatText('italic')"><i class="fas fa-italic"></i> Itálico</button>
-        <button onclick="formatText('underline')"><i class="fas fa-underline"></i> Sublinhado</button>
-        <button onclick="formatText('strikeThrough')"><i class="fas fa-strikethrough"></i> Tachado</button>
+    <header class="header-bar">
+        <h1>WZZM Office Online - Beta 234</h1>
+        <div class="login-section">
+            <span id="user-info"></span>
+            <button id="login-button" style="display: none;">Login com Google</button>
+            <button id="logout-button" style="display: none;">Sair</button>
+        </div>
+    </header>
 
-        <select onchange="formatText('fontName', this.value)">
-            <option value="">Fonte</option>
-            <option value="Arial">Arial</option>
-            <option value="Verdana">Verdana</option>
-            <option value="Times New Roman">Times New Roman</option>
-            <option value="Georgia">Georgia</option>
-            <option value="Courier New">Courier New</option>
-        </select>
+    <nav class="navbar" id="main-navbar">
+        <a class="nav-link" href="#" data-page-src="editor.html">WZZM Editor de Texto Online</a>
+        <a class="nav-link" href="#" data-page-src="calculadora.html">Calculadora WZZM Online</a>
+        <a class="nav-link" href="#" data-page-src="clinica.html">WZZM Clínica Online</a>
+        <a class="nav-link" href="#" data-page-src="panilhas.html">WZZM Planilha Online</a>
+        <a class="nav-link" href="#" data-page-src="quebradordeimagem.html">Quebrador de Imagem</a>
+    </nav>
 
-        <select onchange="formatText('fontSize', this.value)">
-            <option value="">Tamanho</option>
-            <option value="1">Muito Pequeno</option>
-            <option value="2">Pequeno</option>
-            <option value="3">Normal</option>
-            <option value="4">Médio</option>
-            <option value="5">Grande</option>
-            <option value="6">Muito Grande</option>
-            <option value="7">Enorme</option>
-        </select>
+    <main>
+        <div id="content-area">
+            <iframe id="contentFrame" src="about:blank"></iframe>
+            </div>
+    </main>
 
-        <select onchange="formatText('heading', this.value)">
-            <option value="">Cabeçalho</option>
-            <option value="h1">Cabeçalho 1</option>
-            <option value="h2">Cabeçalho 2</option>
-            <option value="h3">Cabeçalho 3</option>
-            <option value="p">Parágrafo</option>
-        </select>
-
-        <button onclick="formatList('insertOrderedList')"><i class="fas fa-list-ol"></i> Lista Ordenada</button>
-        <button onclick="formatList('insertUnorderedList')"><i class="fas fa-list-ul"></i> Lista Não Ordenada</button>
-
-        <button onclick="alignText('justifyLeft')"><i class="fas fa-align-left"></i> Esquerda</button>
-        <button onclick="alignText('justifyCenter')"><i class="fas fa-align-center"></i> Centralizar</button>
-        <button onclick="alignText('justifyRight')"><i class="fas fa-align-right"></i> Direita</button>
-        <button onclick="alignText('justifyFull')"><i class="fas fa-align-justify"></i> Justificar</button>
-
-        <button onclick="indentText()"><i class="fas fa-indent"></i> Indentar</button>
-        <button onclick="outdentText()"><i class="fas fa-outdent"></i> Remover Indentação</button>
-
-        <button onclick="showLinkDialog()"><i class="fas fa-link"></i> Inserir Link</button>
-
-        <button id="add-tab-btn" onclick="addTab()">Adicionar Aba</button>
-        <button id="load-firebase-btn" onclick="loadAllDocumentsFromFirebase()">Carregar Documentos</button>
-        <button id="save-firebase-btn" onclick="saveAllDocumentsToFirebase()">Salvar no Firebase</button>
-    </div>
-
-    <div id="tab-container">
-    </div>
-
-    <div id="content-container">
-    </div>
-
-    <div id="link-modal">
-        <label for="link-url">URL:</label>
-        <input type="text" id="link-url">
-        <button class="confirm" onclick="insertLink()">Inserir</button>
-        <button class="cancel" onclick="hideLinkDialog()">Cancelar</button>
-    </div>
-
-    <div id="editor-status-message">
-        Carregando informações do usuário...
-    </div>
-
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <p style="text-align: center;">Site administrador pela <a href="https://wzzm.org" target="_blank">Wiki Zone Zero Mod</a></p>
+    <p style="text-align: center;">&nbsp;</p>
 
     <script>
-        // Sua configuração do Firebase (manter a mesma configuração do index.html)
-        const firebaseConfig = {
-            apiKey: "AIzaSyB9GkSqTIZ0kbVsba_WOdQeVAETrF9qna0",
-            authDomain: "wzzm-ce3fc.firebaseapp.com",
-            projectId: "wzzm-ce3fc",
-            storageBucket: "wzzm-ce3fc.appspot.com",
-            messagingSenderId: "249427877153",
-            appId: "1:249427877153:web:0e4297294794a5aadeb260",
-            measurementId: "G-PLKNZNFCQ8"
-        };
+        // Elementos da UI
+        const contentFrame = document.getElementById('contentFrame');
+        const navLinks = document.querySelectorAll('.nav-link');
 
-        // Inicialize o Firebase (aqui no editor, APENAS para Firestore)
-        // REMOVA QUALQUER INICIALIZAÇÃO DE `firebase.auth()` AQUI,
-        // pois a autenticação é gerenciada pelo frame pai.
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-
-        let currentUserUid = null; // Esta variável será preenchida pela mensagem do iframe pai
-        const editorStatusMessage = document.getElementById('editor-status-message');
-        const saveButton = document.getElementById('save-firebase-btn');
-        const loadButton = document.getElementById('load-firebase-btn');
-        const addTabButton = document.getElementById('add-tab-btn'); // Adicionei este
-
-        // Função para atualizar o estado da UI do editor com base no login
-        function updateEditorUI(loggedIn) {
-            // Desabilita/habilita os botões da barra de ferramentas
-            const toolbarButtons = document.querySelectorAll('#toolbar button, #toolbar select');
-            toolbarButtons.forEach(button => {
-                // Excluímos 'add-tab-btn' para que sempre seja possível adicionar uma aba
-                if (button.id !== 'add-tab-btn') {
-                    button.disabled = !loggedIn;
+        // Função para carregar a página no iframe
+        function loadPage(pageSrc) {
+            contentFrame.src = pageSrc;
+            // Ativa o link de navegação correspondente
+            navLinks.forEach(link => {
+                if (link.dataset.pageSrc === pageSrc) {
+                    link.classList.add('active');
+                } else {
+                    link.classList.remove('active');
                 }
             });
-
-            // Gerencia a visibilidade da mensagem de status
-            if (loggedIn) {
-                editorStatusMessage.style.display = 'none'; // Oculta a mensagem de status
-            } else {
-                editorStatusMessage.textContent = "Você precisa estar logado no WZZM Office para salvar/carregar documentos e editar.";
-                editorStatusMessage.style.display = 'block'; // Mostra a mensagem de "deslogado"
-            }
         }
 
-        // --- Adição CRÍTICA: Listener para receber o UID do iframe pai ---
-        window.addEventListener('message', (event) => {
-            // É CRÍTICO verificar a origem da mensagem por segurança!
-            // SUBSTITUA ESTA ORIGEM PELA ORIGEM REAL DO SEU 'index.html' EM PRODUÇÃO!
-            // Ex: 'https://office.wzzm.org'
-            // Para desenvolvimento local, pode ser 'http://localhost:5500' ou a porta que seu servidor de desenvolvimento usa.
-            const expectedOrigin = window.location.protocol + "//" + window.location.host; 
-            // O ideal é usar o domínio exato para segurança, mas para testar localmente
-            // event.origin === window.location.protocol + "//" + window.location.host;
-            // pode ser útil se o iframe estiver no mesmo servidor/porta.
-            // Para produção, defina explicitamente: 'https://office.wzzm.org'
-
-            if (event.origin === expectedOrigin) {
-                const data = event.data;
-                if (data && data.type === 'AUTH_UID') {
-                    currentUserUid = data.uid;
-                    console.log("UID recebido do iframe pai:", currentUserUid ? currentUserUid : 'NULO (deslogado)');
-
-                    if (currentUserUid) {
-                        updateEditorUI(true); // Usuário logado
-                        loadAllDocumentsFromFirebase(); // Tenta carregar documentos do usuário
-                    } else {
-                        updateEditorUI(false); // Usuário deslogado
-                        // Limpa o editor se o usuário deslogar
-                        document.getElementById('tab-container').innerHTML = '';
-                        document.getElementById('content-container').innerHTML = '';
-                        tabCounter = 1; // Reinicia o contador de abas
-                        activeTabId = null; // Limpa a aba ativa
-                        tabToDocIdMap.clear(); // Limpa o mapa de IDs
-                        addTab(); // Adiciona uma nova aba vazia para começar
-                    }
-                }
-            } else {
-                console.warn("Mensagem recebida de uma origem não esperada:", event.origin);
-            }
+        // Adiciona event listeners aos links de navegação
+        navLinks.forEach(link => {
+            link.addEventListener('click', function(event) {
+                event.preventDefault();
+                loadPage(this.dataset.pageSrc);
+            });
         });
 
-        let tabCounter = 1;
-        let activeTabId = null;
-        const tabToDocIdMap = new Map(); // Mapeia o ID da aba local para o ID do documento no Firestore
-
-        function addTab(name = `Documento ${tabCounter}`, content = "", docId = null) {
-            const tabContainer = document.getElementById('tab-container');
-            const contentContainer = document.getElementById('content-container');
-
-            // Salva o conteúdo do editor ativo antes de trocar
-            if (activeTabId) {
-                const currentEditor = document.getElementById(activeTabId.replace('tab', 'editor'));
-                if (currentEditor) {
-                    // No editor, não precisamos "salvar" ativamente aqui, pois o saveAllDocumentsToFirebase
-                    // itera por todos os editores. Apenas garantimos que a classe ativa seja removida.
-                }
-            }
-
-            const tabId = `tab-${tabCounter}`;
-            const editorId = `editor-${tabCounter}`;
-
-            // Criar a aba
-            const tabDiv = document.createElement('div');
-            tabDiv.classList.add('tab');
-            tabDiv.setAttribute('data-tab-id', tabId);
-            tabDiv.innerHTML = `
-                <input type="text" value="${name}" onchange="renameTab(this, '${tabId}')">
-                <span class="close-tab" onclick="deleteTab('${tabId}', event)">&times;</span>
-            `;
-            tabDiv.addEventListener('click', (event) => {
-                // Impede que o clique no input ou no botão de fechar ative a troca de aba
-                if (event.target.tagName !== 'INPUT' && !event.target.classList.contains('close-tab')) {
-                    switchTab(tabId);
-                }
-            });
-            tabContainer.appendChild(tabDiv);
-
-            // Criar o editor de conteúdo
-            const editorDiv = document.createElement('div');
-            editorDiv.id = editorId;
-            editorDiv.classList.add('document-editor');
-            editorDiv.setAttribute('contenteditable', 'true');
-            editorDiv.innerHTML = content;
-            contentContainer.appendChild(editorDiv);
-
-            // Associa o ID da aba ao ID do documento do Firebase, se houver
-            if (docId) {
-                tabToDocIdMap.set(tabId, docId);
-            } else {
-                // Se for uma nova aba local, não há docId ainda
-                tabToDocIdMap.delete(tabId); 
-            }
-
-            // Ativa a nova aba se for a primeira ou se não houver aba ativa
-            if (!activeTabId || tabContainer.children.length === 1) {
-                switchTab(tabId);
-            }
-            tabCounter++;
-        }
-
-        function switchTab(tabId) {
-            const activeTab = document.querySelector('.tab.active');
-            const activeEditor = document.querySelector('.document-editor.active');
-
-            if (activeTab) {
-                activeTab.classList.remove('active');
-            }
-            if (activeEditor) {
-                activeEditor.classList.remove('active');
-            }
-
-            const newActiveTab = document.querySelector(`.tab[data-tab-id="${tabId}"]`);
-            const newActiveEditor = document.getElementById(tabId.replace('tab', 'editor'));
-
-            if (newActiveTab) {
-                newActiveTab.classList.add('active');
-            }
-            if (newActiveEditor) {
-                newActiveEditor.classList.add('active');
-            }
-
-            activeTabId = tabId;
-        }
-
-        function renameTab(inputElement, tabId) {
-            // O nome já é atualizado no input. Quando 'saveAllDocumentsToFirebase' for chamado,
-            // ele pegará o nome atual do input.
-            console.log(`Aba ${tabId} renomeada para: ${inputElement.value}`);
-        }
-
-        async function deleteTab(tabId, event) {
-            event.stopPropagation(); // Evita que o clique no 'x' ative a troca de aba
-
-            if (!confirm('Tem certeza que deseja excluir esta aba e o documento associado?')) {
-                return;
-            }
-
-            const tabElement = document.querySelector(`.tab[data-tab-id="${tabId}"]`);
-            const editorElement = document.getElementById(tabId.replace('tab', 'editor'));
-
-            if (tabElement && editorElement) {
-                const docId = tabToDocIdMap.get(tabId);
-                
-                // Só tenta excluir do Firebase se estiver logado e houver um docId associado
-                if (docId && currentUserUid) {
-                    try {
-                        await db.collection('docoffice').doc(currentUserUid).collection('documents').doc(docId).delete();
-                        console.log("Documento excluído do Firebase:", docId);
-                        tabToDocIdMap.delete(tabId); // Remove do mapa
-                    } catch (error) {
-                        console.error("Erro ao excluir documento do Firebase:", error);
-                        alert("Erro ao excluir documento do Firebase. Tente novamente.");
-                        return; // Não remove localmente se falhar no Firebase
-                    }
-                } else if (docId && !currentUserUid) {
-                    alert("Você não está logado para excluir este documento no Firebase. Ele será removido apenas localmente.");
-                    tabToDocIdMap.delete(tabId); // Remove do mapa, já que não estava logado
-                } else { // Não há docId (aba nova, não salva)
-                    console.log("Aba local removida (não associada a um documento Firebase).");
-                }
-
-                tabElement.remove();
-                editorElement.remove();
-
-                // Lógica para alternar para outra aba se a aba excluída era a ativa
-                if (activeTabId === tabId) {
-                    const remainingTabs = document.querySelectorAll('#tab-container .tab');
-                    if (remainingTabs.length > 0) {
-                        switchTab(remainingTabs[0].getAttribute('data-tab-id'));
-                    } else {
-                        // Se não houver mais abas, adiciona uma nova vazia
-                        activeTabId = null;
-                        tabCounter = 1; // Reinicia o contador para uma nova aba
-                        tabToDocIdMap.clear(); // Garante que o mapa esteja limpo
-                        addTab();
-                    }
-                }
-            }
-        }
-
-        function formatText(command, value = null) {
-            if (!currentUserUid) {
-                alert("Você precisa estar logado para editar documentos.");
-                return;
-            }
-            if (activeTabId) {
-                const activeEditor = document.getElementById(activeTabId.replace('tab', 'editor'));
-                if (activeEditor) {
-                    activeEditor.focus();
-                    document.execCommand(command, false, value);
-                }
-            }
-        }
-
-        function formatList(command) {
-            if (!currentUserUid) {
-                alert("Você precisa estar logado para editar documentos.");
-                return;
-            }
-            if (activeTabId) {
-                const activeEditor = document.getElementById(activeTabId.replace('tab', 'editor'));
-                if (activeEditor) {
-                    activeEditor.focus();
-                    document.execCommand(command, false, null);
-                }
-            }
-        }
-
-        function alignText(command) {
-            if (!currentUserUid) {
-                alert("Você precisa estar logado para editar documentos.");
-                return;
-            }
-            if (activeTabId) {
-                const activeEditor = document.getElementById(activeTabId.replace('tab', 'editor'));
-                if (activeEditor) {
-                    activeEditor.focus();
-                    document.execCommand(command, false, null);
-                }
-            }
-        }
-
-        function indentText() {
-            if (!currentUserUid) {
-                alert("Você precisa estar logado para editar documentos.");
-                return;
-            }
-            if (activeTabId) {
-                const activeEditor = document.getElementById(activeTabId.replace('tab', 'editor'));
-                if (activeEditor) {
-                    activeEditor.focus();
-                    document.execCommand('indent', false, null);
-                }
-            }
-        }
-
-        function outdentText() {
-            if (!currentUserUid) {
-                alert("Você precisa estar logado para editar documentos.");
-                return;
-            }
-            if (activeTabId) {
-                const activeEditor = document.getElementById(activeTabId.replace('tab', 'editor'));
-                if (activeEditor) {
-                    activeEditor.focus();
-                    document.execCommand('outdent', false, null);
-                }
-            }
-        }
-
-        const linkModal = document.getElementById('link-modal');
-        const linkUrlInput = document.getElementById('link-url');
-
-        function showLinkDialog() {
-            if (!currentUserUid) {
-                alert("Você precisa estar logado para inserir links.");
-                return;
-            }
-            linkModal.style.display = 'block';
-            linkUrlInput.value = '';
-            linkUrlInput.focus();
-        }
-
-        function hideLinkDialog() {
-            linkModal.style.display = 'none';
-        }
-
-        function insertLink() {
-            const url = linkUrlInput.value;
-            if (url) {
-                formatText('createLink', url);
-            }
-            hideLinkDialog();
-        }
-
-        async function saveAllDocumentsToFirebase() {
-            if (!currentUserUid) {
-                alert("Você precisa estar logado no WZZM Office para salvar documentos.");
-                return;
-            }
-
-            const tabElements = document.querySelectorAll('#tab-container .tab');
-            if (tabElements.length === 0) {
-                alert("Não há documentos para salvar.");
-                return;
-            }
-
-            const batch = db.batch();
-            const userDocumentsRef = db.collection('docoffice').doc(currentUserUid).collection('documents');
-
-            for (const tabElement of tabElements) {
-                const tabId = tabElement.getAttribute('data-tab-id');
-                const nameInput = tabElement.querySelector('input[type="text"]');
-                const contentEditor = document.getElementById(tabId.replace('tab', 'editor'));
-
-                if (nameInput && contentEditor) {
-                    const docName = nameInput.value;
-                    const docContent = contentEditor.innerHTML;
-                    const timestamp = firebase.firestore.FieldValue.serverTimestamp();
-
-                    let docRef;
-                    const existingDocId = tabToDocIdMap.get(tabId);
-
-                    if (existingDocId) {
-                        docRef = userDocumentsRef.doc(existingDocId);
-                        batch.update(docRef, {
-                            name: docName,
-                            content: docContent,
-                            updatedAt: timestamp
-                        });
-                    } else {
-                        docRef = userDocumentsRef.doc(); // Cria um novo documento no Firestore
-                        batch.set(docRef, {
-                            name: docName,
-                            content: docContent,
-                            createdAt: timestamp,
-                            updatedAt: timestamp
-                        });
-                        tabToDocIdMap.set(tabId, docRef.id); // Armazena o ID gerado para a aba
-                    }
-                }
-            }
-
-            try {
-                await batch.commit();
-                alert("Todos os documentos salvos no Firebase com sucesso!");
-            } catch (error) {
-                console.error("Erro ao salvar documentos no Firebase:", error);
-                alert("Erro ao salvar documentos no Firebase.");
-            }
-        }
-
-        async function loadAllDocumentsFromFirebase() {
-            if (!currentUserUid) {
-                alert("Você precisa estar logado no WZZM Office para carregar documentos.");
-                return;
-            }
-
-            try {
-                // Limpa abas e editores existentes antes de carregar novos
-                document.getElementById('tab-container').innerHTML = '';
-                document.getElementById('content-container').innerHTML = '';
-                tabCounter = 1;
-                activeTabId = null;
-                tabToDocIdMap.clear();
-
-                const userDocumentsRef = db.collection('docoffice').doc(currentUserUid).collection('documents');
-                const querySnapshot = await userDocumentsRef.orderBy('updatedAt', 'desc').get();
-
-                if (querySnapshot.empty) {
-                    alert("Nenhum documento encontrado no Firebase para este usuário. Adicione um novo documento.");
-                    addTab(); // Adiciona uma aba vazia para começar
-                    return;
-                }
-
-                querySnapshot.forEach(doc => {
-                    const data = doc.data();
-                    addTab(data.name, data.content, doc.id); // Adiciona abas com dados do Firebase
-                });
-
-                // Ativa a primeira aba se houver documentos
-                if (document.querySelectorAll('#tab-container .tab').length > 0 && !activeTabId) {
-                    switchTab(document.querySelectorAll('#tab-container .tab')[0].getAttribute('data-tab-id'));
-                }
-                alert("Documentos carregados do Firebase com sucesso!");
-
-            } catch (error) {
-                console.error("Erro ao carregar documentos do Firebase:", error);
-                alert("Erro ao carregar documentos do Firebase.");
-            }
-        }
-
-        // Inicializa o estado do editor e adiciona a primeira aba vazia
+        // Carrega a página padrão ao carregar o index.html
         document.addEventListener('DOMContentLoaded', () => {
-            updateEditorUI(false); // Assume que não está logado até receber o UID do pai
-            addTab(); // Adiciona uma aba inicial para o usuário começar a digitar, mesmo sem login
+            const firstPageSrc = navLinks[0]?.dataset.pageSrc;
+            if (firstPageSrc) {
+                loadPage(firstPageSrc);
+            }
         });
     </script>
-    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script> 
 </body>
 </html>
