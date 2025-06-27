@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Menu Principal - Sistema de Atendimento</title>
+  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; background: #f4f4f4; margin: 0; }
+    .container { background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); text-align: center; max-width: 600px; width: 90%; }
+    h1 { color: #3f51b5; margin-bottom: 30px; }
+    .auth-section, .patient-selection-section, .reception-section { margin-bottom: 30px; border-bottom: 1px solid #eee; padding-bottom: 20px;}
+    #google-login-button {
+      background-color: #4285F4;
+      color: white;
+      border: none;
+      padding: 12px 25px;
+      font-size: 1.1em;
+      border-radius: 5px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto;
+    }
+    #google-login-button img { margin-right: 10px; }
+    #google-login-button:hover { background-color: #357ae8; }
+
+    .menu-links { margin-top: 30px; padding-top: 20px; }
+    .menu-links a {
+      display: block;
+      background: #007bff;
+      color: white;
+      padding: 12px 20px;
+      margin-bottom: 10px;
+      border-radius: 5px;
+      text-decoration: none;
+      font-size: 1.1em;
+      transition: background 0.3s ease;
+    }
+    .menu-links a:hover { background: #0056b3; }
+    .menu-links a.disabled { background: #cccccc; cursor: not-allowed; }
+    .status-message { margin-top: 20px; font-weight: bold; }
+    .status-message.success { color: green; }
+    .status-message.error { color: red; }
+    .user-info, .selected-patient-info { margin-top: 20px; padding: 10px; border: 1px dashed #ccc; border-radius: 5px; background: #f9f9f9; }
+    .user-info p, .selected-patient-info p { margin: 5px 0; }
+    .logout-button { background: #dc3545; margin-top: 15px; }
+    .logout-button:hover { background: #c82333; }
+
+    .search-group { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
+    .search-group input { flex-grow: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+    .search-group button { padding: 8px 15px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    .search-group button:hover { background: #218838; }
+
+    #search-results {
+        list-style: none;
+        padding: 0;
+        max-height: 200px;
+        overflow-y: auto;
+        border: 1px solid #eee;
+        border-radius: 4px;
+        margin-top: 15px;
+        text-align: left;
+    }
+    #search-results li {
+        padding: 10px;
+        border-bottom: 1px solid #eee;
+        cursor: pointer;
+        background: #fff;
+    }
+    #search-results li:last-child { border-bottom: none; }
+    #search-results li:hover { background: #e9e9e9; }
+
+    #register-reception-button {
+        background-color: #007bff;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        margin-top: 15px;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+    #register-reception-button:hover { background-color: #0056b3; }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>Sistema de Atendimento Médico</h1>
+
+    <div class="auth-section" id="auth-section">
+      <p id="auth-status">Faça login para acessar as funcionalidades.</p>
+      <button id="google-login-button">
+        <img width="20px" alt="Google sign-in" src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/Google_%22G%22_Logo.svg/512px-Google_%22G%22_Logo.svg.png" />
+        Entrar com Google
+      </button>
+      <div id="user-info" class="user-info" style="display:none;">
+        <p>Logado como: <strong id="display-user-name"></strong></p>
+        <p>E-mail: <strong id="display-user-email"></strong></p>
+        <p>Seu UID (Google): <strong id="display-user-uid"></strong></p>
+        <button id="logout-button" class="logout-button">Sair</button>
+      </div>
+    </div>
+
+    <div class="patient-selection-section" id="patient-selection-section" style="display:none;">
+      <h2>Selecionar Paciente</h2>
+      <div class="search-group">
+        <input type="text" id="pacient-uid-input" placeholder="Buscar por UID do Paciente">
+        <button id="search-by-uid-button">Buscar UID</button>
+      </div>
+      <div class="search-group">
+        <input type="text" id="pacient-name-input" placeholder="Buscar por Nome do Paciente">
+        <button id="search-by-name-button">Buscar Nome</button>
+      </div>
+      <ul id="search-results">
+        </ul>
+      <div id="selected-patient-info" class="selected-patient-info" style="display:none;">
+        <p>Paciente Selecionado: <strong id="display-patient-name"></strong></p>
+        <p>UID do Paciente: <strong id="display-patient-uid"></strong></p>
+        <button id="clear-patient-selection-button" class="logout-button">Limpar Seleção</button>
+      </div>
+    </div>
+
+    <div class="reception-section" id="reception-section" style="display:none;">
+        <h2>Recepção de Paciente</h2>
+        <p>Selecione um paciente acima e clique no botão abaixo para registrar a chegada.</p>
+        <button id="register-reception-button" disabled>Registrar Chegada na Fila</button>
+    </div>
+
+    <div class="menu-links">
+      <a href="cadastroprofissional.html" id="link-cadastro-profissional">Cadastro de Profissional (Manual)</a>
+      <a href="cadastropaciente.html" id="link-cadastro-paciente" class="disabled">Cadastro de Paciente</a>
+      <a href="atendimentoambulatorial.html" id="link-atendimento" class="disabled">Atendimento Ambulatorial</a>
+      <a href="apac.html" id="link-apac" class="disabled">Solicitação de APAC</a>
+    </div>
+
+    <div id="mensagem" class="status-message"></div>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyB9GkSqTIZ0kbVsba_WOdQeVAETrF9qna0",
+      authDomain: "wzzm-ce3fc.firebaseapp.com",
+      projectId: "wzzm-ce3fc",
+      storageBucket: "wzzm-ce3fc.appspot.com",
+      messagingSenderId: "249427877153",
+      appId: "1:249427877153:web:0e4297294794a5aadeb260",
+      measurementId: "G-PLKNZNFCQ8"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const firestore = firebase.firestore();
+    const googleProvider = new firebase.auth.GoogleAuthProvider();
+
+    const authStatus = document.getElementById("auth-status");
+    const googleLoginButton = document.getElementById("google-login-button");
+    const logoutButton = document.getElementById("logout-button");
+    const userInfoDiv = document.getElementById("user-info");
+    const displayUserName = document.getElementById("display-user-name");
+    const displayUserEmail = document.getElementById("display-user-email");
+    const displayUserUid = document.getElementById("display-user-uid");
+    const mensagemDiv = document.getElementById("mensagem");
+
+    const patientSelectionSection = document.getElementById("patient-selection-section");
+    const pacientUidInput = document.getElementById("pacient-uid-input");
+    const pacientNameInput = document.getElementById("pacient-name-input");
+    const searchByUidButton = document.getElementById("search-by-uid-button");
+    const searchByNameButton = document.getElementById("search-by-name-button");
+    const searchResultsList = document.getElementById("search-results");
+    const selectedPatientInfoDiv = document.getElementById("selected-patient-info");
+    const displayPatientName = document.getElementById("display-patient-name");
+    const displayPatientUid = document.getElementById("display-patient-uid");
+    const clearPatientSelectionButton = document.getElementById("clear-patient-selection-button");
+
+    const receptionSection = document.getElementById("reception-section");
+    const registerReceptionButton = document.getElementById("register-reception-button");
+
+
+    const linkCadastroPaciente = document.getElementById("link-cadastro-paciente");
+    const linkAtendimento = document.getElementById("link-atendimento");
+    const linkApac = document.getElementById("link-apac");
+    const linkCadastroProfissional = document.getElementById("link-cadastro-profissional");
+
+    let currentProfessionalUID = null;
+    let currentPatientUID = null; // Para armazenar o UID do paciente selecionado
+
+    // Função para habilitar/desabilitar links
+    function toggleMenuLinks(isProfessionalLoggedIn, isPatientSelected) {
+      const enableAttendanceLinks = isProfessionalLoggedIn && isPatientSelected;
+
+      // Habilitar/desabilitar links de atendimento e APAC
+      if (enableAttendanceLinks) {
+        linkCadastroPaciente.classList.remove("disabled");
+        linkAtendimento.classList.remove("disabled");
+        linkApac.classList.remove("disabled");
+        linkCadastroPaciente.style.pointerEvents = 'auto';
+        linkAtendimento.style.pointerEvents = 'auto';
+        linkApac.style.pointerEvents = 'auto';
+      } else {
+        linkCadastroPaciente.classList.add("disabled");
+        linkAtendimento.classList.add("disabled");
+        linkApac.classList.add("disabled");
+        linkCadastroPaciente.style.pointerEvents = 'none';
+        linkAtendimento.style.pointerEvents = 'none';
+        linkApac.style.pointerEvents = 'none';
+      }
+
+      // Habilitar/desabilitar botão de recepção
+      if (isProfessionalLoggedIn && isPatientSelected) {
+          registerReceptionButton.removeAttribute('disabled');
+      } else {
+          registerReceptionButton.setAttribute('disabled', 'disabled');
+      }
+    }
+
+    // Função para atualizar a exibição do paciente selecionado
+    function updateSelectedPatientDisplay() {
+        const patientName = localStorage.getItem('pacienteNomeSelecionado');
+        const patientUID = localStorage.getItem('pacienteUIDSelecionado');
+
+        if (patientName && patientUID) {
+            displayPatientName.textContent = patientName;
+            displayPatientUid.textContent = patientUID;
+            selectedPatientInfoDiv.style.display = "block";
+            currentPatientUID = patientUID; // Atualiza a variável global
+        } else {
+            displayPatientName.textContent = "";
+            displayPatientUid.textContent = "";
+            selectedPatientInfoDiv.style.display = "none";
+            currentPatientUID = null; // Limpa a variável global
+        }
+        // Atualiza o estado dos links e botão de recepção
+        toggleMenuLinks(currentProfessionalUID !== null, currentPatientUID !== null);
+    }
+
+    // Listener para o estado da autenticação
+    auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        // Usuário logado
+        authStatus.textContent = "Logado com sucesso!";
+        googleLoginButton.style.display = "none";
+        userInfoDiv.style.display = "block";
+        displayUserName.textContent = user.displayName || "Não informado";
+        displayUserEmail.textContent = user.email || "Não informado";
+        displayUserUid.textContent = user.uid;
+        currentProfessionalUID = user.uid; // Define o UID do profissional logado
+        patientSelectionSection.style.display = "block"; // Exibe a seção de seleção de paciente
+        receptionSection.style.display = "block"; // Exibe a seção de recepção
+
+        // Armazena o UID e nome do profissional no localStorage
+        localStorage.setItem('profissionalUID', user.uid);
+        localStorage.setItem('profissionalNome', user.displayName || '');
+        localStorage.setItem('profissionalEmail', user.email || '');
+
+        // Verificar se o profissional existe no Firestore e cadastrar se não
+        try {
+          const profissionalDoc = await firestore.collection("profissionais").doc(user.uid).get();
+          if (!profissionalDoc.exists) {
+            await firestore.collection("profissionais").doc(user.uid).set({
+              uid: user.uid,
+              nome: user.displayName || "Profissional sem nome",
+              email: user.email || "email@nao.informado",
+              dataCadastro: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            mensagemDiv.textContent = "Seu cadastro de profissional foi criado no sistema.";
+            mensagemDiv.className = "status-message success";
+          } else {
+            mensagemDiv.textContent = "Bem-vindo(a) de volta, " + (user.displayName || user.email) + "!";
+            mensagemDiv.className = "status-message success";
+          }
+        } catch (error) {
+          console.error("Erro ao verificar/cadastrar profissional:", error);
+          mensagemDiv.textContent = "Erro ao verificar ou cadastrar seu perfil de profissional.";
+          mensagemDiv.className = "status-message error";
+        }
+        updateSelectedPatientDisplay(); // Atualiza a exibição do paciente ao logar
+      } else {
+        // Usuário deslogado
+        authStatus.textContent = "Faça login para acessar as funcionalidades.";
+        googleLoginButton.style.display = "block";
+        userInfoDiv.style.display = "none";
+        patientSelectionSection.style.display = "none"; // Esconde a seção de seleção de paciente
+        receptionSection.style.display = "none"; // Esconde a seção de recepção
+        
+        currentProfessionalUID = null; // Limpa o UID do profissional
+        currentPatientUID = null; // Limpa o UID do paciente
+        
+        localStorage.removeItem('profissionalUID');
+        localStorage.removeItem('profissionalNome');
+        localStorage.removeItem('profissionalEmail');
+        localStorage.removeItem('pacienteUIDSelecionado');
+        localStorage.removeItem('pacienteNomeSelecionado');
+        localStorage.removeItem('pacienteCPFSelcionado'); 
+        localStorage.removeItem('pacienteDataNascimentoSelecionado');
+        localStorage.removeItem('pacienteSexoSelecionado');
+        localStorage.removeItem('pacienteTelefoneSelecionado');
+        localStorage.removeItem('pacienteEmailSelecionado');
+        localStorage.removeItem('pacienteEnderecoSelecionado');
+
+        mensagemDiv.textContent = "";
+        updateSelectedPatientDisplay(); // Atualiza a exibição do paciente ao deslogar
+      }
+    });
+
+    // Event listener para o botão de login com Google
+    googleLoginButton.addEventListener("click", async () => {
+      try {
+        await auth.signInWithPopup(googleProvider);
+        // onAuthStateChanged cuidará da atualização da UI
+      } catch (error) {
+        console.error("Erro no login com Google:", error);
+        mensagemDiv.textContent = "Erro no login: " + error.message;
+        mensagemDiv.className = "status-message error";
+      }
+    });
+
+    // Event listener para o botão de logout
+    logoutButton.addEventListener("click", async () => {
+      try {
+        await auth.signOut();
+        mensagemDiv.textContent = "Você foi desconectado(a).";
+        mensagemDiv.className = "status-message success";
+      } catch (error) {
+        console.error("Erro ao fazer logout:", error);
+        mensagemDiv.textContent = "Erro ao fazer logout: " + error.message;
+        mensagemDiv.className = "status-message error";
+      }
+    });
+
+    // --- Funcionalidade de Busca e Seleção de Pacientes ---
+
+    // Função para exibir resultados da busca
+    function displaySearchResults(patients) {
+        searchResultsList.innerHTML = ''; // Limpa resultados anteriores
+        if (patients.length === 0) {
+            searchResultsList.innerHTML = '<li>Nenhum paciente encontrado.</li>';
+            return;
+        }
+        patients.forEach(patient => {
+            const li = document.createElement('li');
+            li.textContent = `${patient.nome} (CPF: ${patient.cpf || 'N/A'}) - UID: ${patient.id}`;
+            li.dataset.uid = patient.id; // Armazena o UID no dataset
+            li.dataset.nome = patient.nome;
+            li.dataset.cpf = patient.cpf;
+            li.dataset.dataNascimento = patient.dataNascimento;
+            li.dataset.sexo = patient.sexo;
+            li.dataset.telefone = patient.telefone;
+            li.dataset.email = patient.email;
+            li.dataset.endereco = patient.endereco;
+
+            li.addEventListener('click', () => {
+                selectPatient(li.dataset);
+            });
+            searchResultsList.appendChild(li);
+        });
+    }
+
+    // Função para selecionar um paciente
+    function selectPatient(patientData) {
+        localStorage.setItem('pacienteUIDSelecionado', patientData.uid);
+        localStorage.setItem('pacienteNomeSelecionado', patientData.nome);
+        localStorage.setItem('pacienteCPFSelcionado', patientData.cpf);
+        localStorage.setItem('pacienteDataNascimentoSelecionado', patientData.dataNascimento);
+        localStorage.setItem('pacienteSexoSelecionado', patientData.sexo);
+        localStorage.setItem('pacienteTelefoneSelecionado', patientData.telefone);
+        localStorage.setItem('pacienteEmailSelecionado', patientData.email);
+        localStorage.setItem('pacienteEnderecoSelecionado', patientData.endereco);
+        
+        mensagemDiv.textContent = `Paciente '${patientData.nome}' selecionado para atendimento.`;
+        mensagemDiv.className = "status-message success";
+        searchResultsList.innerHTML = ''; // Limpa os resultados da busca
+        updateSelectedPatientDisplay(); // Atualiza a exibição do paciente selecionado
+    }
+
+    // Listener para buscar por UID
+    searchByUidButton.addEventListener("click", async () => {
+        const uid = pacientUidInput.value.trim();
+        if (uid) {
+            try {
+                const patientDoc = await firestore.collection("clientepaciente").doc(uid).get();
+                if (patientDoc.exists) {
+                    displaySearchResults([{ id: patientDoc.id, ...patientDoc.data() }]);
+                } else {
+                    displaySearchResults([]);
+                    mensagemDiv.textContent = "Nenhum paciente encontrado com este UID.";
+                    mensagemDiv.className = "status-message error";
+                }
+            } catch (error) {
+                console.error("Erro ao buscar paciente por UID:", error);
+                mensagemDiv.textContent = "Erro ao buscar paciente por UID.";
+                mensagemDiv.className = "status-message error";
+            }
+        } else {
+            mensagemDiv.textContent = "Por favor, digite um UID para buscar.";
+            mensagemDiv.className = "status-message error";
+        }
+    });
+
+    // Listener para buscar por nome
+    searchByNameButton.addEventListener("click", async () => {
+        const nameQuery = pacientNameInput.value.trim();
+        if (nameQuery.length >= 3) { // Mínimo de 3 caracteres para busca por nome
+            try {
+                // Busca case-insensitive e com "starts with"
+                // Nota: Firestore não suporta busca case-insensitive nativamente sem criar campos adicionais.
+                // Esta busca é case-sensitive. Para busca case-insensitive, você precisaria armazenar uma versão minúscula do nome.
+                const snapshot = await firestore.collection("clientepaciente")
+                    .where("nome", ">=", nameQuery)
+                    .where("nome", "<=", nameQuery + '\uf8ff')
+                    .get();
+                
+                const patients = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                displaySearchResults(patients);
+                if (patients.length === 0) {
+                    mensagemDiv.textContent = "Nenhum paciente encontrado com este nome.";
+                    mensagemDiv.className = "status-message error";
+                } else {
+                    mensagemDiv.textContent = `${patients.length} paciente(s) encontrado(s). Clique para selecionar.`;
+                    mensagemDiv.className = "status-message success";
+                }
+            } catch (error) {
+                console.error("Erro ao buscar paciente por nome:", error);
+                mensagemDiv.textContent = "Erro ao buscar paciente por nome.";
+                mensagemDiv.className = "status-message error";
+            }
+        } else {
+            mensagemDiv.textContent = "Por favor, digite ao menos 3 caracteres para buscar por nome.";
+            mensagemDiv.className = "status-message error";
+        }
+    });
+
+    // Listener para limpar seleção de paciente
+    clearPatientSelectionButton.addEventListener("click", () => {
+        localStorage.removeItem('pacienteUIDSelecionado');
+        localStorage.removeItem('pacienteNomeSelecionado');
+        localStorage.removeItem('pacienteCPFSelcionado');
+        localStorage.removeItem('pacienteDataNascimentoSelecionado');
+        localStorage.removeItem('pacienteSexoSelecionado');
+        localStorage.removeItem('pacienteTelefoneSelecionado');
+        localStorage.removeItem('pacienteEmailSelecionado');
+        localStorage.removeItem('pacienteEnderecoSelecionado');
+        mensagemDiv.textContent = "Seleção de paciente limpa.";
+        mensagemDiv.className = "status-message success";
+        updateSelectedPatientDisplay();
+    });
+
+    // --- Funcionalidade de Recepção ---
+    registerReceptionButton.addEventListener("click", async () => {
+        if (!currentProfessionalUID) {
+            mensagemDiv.textContent = "Por favor, faça login para registrar a recepção.";
+            mensagemDiv.className = "status-message error";
+            return;
+        }
+        if (!currentPatientUID) {
+            mensagemDiv.textContent = "Por favor, selecione um paciente para registrar a recepção.";
+            mensagemDiv.className = "status-message error";
+            return;
+        }
+
+        try {
+            await firestore.collection("filaAtendimento").add({
+                pacienteUID: currentPatientUID,
+                nomePaciente: localStorage.getItem('pacienteNomeSelecionado'),
+                profissionalRecepcaoUID: currentProfessionalUID,
+                nomeProfissionalRecepcao: localStorage.getItem('profissionalNome'),
+                dataChegada: firebase.firestore.FieldValue.serverTimestamp(), // Timestamp do servidor
+                status: "Aguardando Atendimento"
+            });
+            mensagemDiv.textContent = `Paciente ${localStorage.getItem('pacienteNomeSelecionado')} registrado na fila de atendimento!`;
+            mensagemDiv.className = "status-message success";
+            
+            // Opcional: Limpar a seleção do paciente após registrar a chegada
+            clearPatientSelectionButton.click(); 
+
+        } catch (error) {
+            console.error("Erro ao registrar recepção:", error);
+            mensagemDiv.textContent = "Erro ao registrar recepção: " + error.message;
+            mensagemDiv.className = "status-message error";
+        }
+    });
+
+
+    // Inicialização ao carregar a página
+    updateSelectedPatientDisplay(); // Garante que o paciente selecionado seja exibido se já estiver no localStorage
+  </script>
+
+</body>
+</html>
