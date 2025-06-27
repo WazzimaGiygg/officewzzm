@@ -62,6 +62,73 @@
   </form>
 
   <script>
+
+    // No início do script de CADA UMA das páginas (cadastropaciente.html, atendimentoambulatorial.html, apac.html)
+
+    const profissionalUID = localStorage.getItem('profissionalUID');
+    const profissionalNome = localStorage.getItem('profissionalNome');
+    const pacienteUID = localStorage.getItem('pacienteUIDSelecionado');
+    const pacienteNome = localStorage.getItem('pacienteNomeSelecionado');
+    const pacienteCPF = localStorage.getItem('pacienteCPFSelcionado');
+    const pacienteDataNascimento = localStorage.getItem('pacienteDataNascimentoSelecionado');
+    const pacienteSexo = localStorage.getItem('pacienteSexoSelecionado');
+    const pacienteTelefone = localStorage.getItem('pacienteTelefoneSelecionado');
+    const pacienteEmail = localStorage.getItem('pacienteEmailSelecionado');
+    const pacienteEndereco = localStorage.getItem('pacienteEnderecoSelecionado');
+
+
+    // Redirecionar se o profissional não estiver logado ou paciente não selecionado (exceto para cadastro de paciente)
+    if (!profissionalUID) {
+      alert("Sessão do profissional expirada. Por favor, faça login novamente.");
+      window.location.href = "index.html";
+      return; // Interrompe a execução do script
+    }
+
+    // Para atendimentoambulatorial.html e apac.html, o paciente é obrigatório
+    if ((window.location.pathname.includes('atendimentoambulatorial.html') || window.location.pathname.includes('apac.html')) && !pacienteUID) {
+        alert("Nenhum paciente selecionado. Por favor, selecione um paciente no menu principal.");
+        window.location.href = "index.html";
+        return; // Interrompe a execução do script
+    }
+
+    // Preencher os campos do formulário com os dados do paciente (se existirem e for relevante para a página)
+    if (pacienteUID) {
+        if (document.getElementById("pacienteNome")) { // Verifica se o campo existe na página atual
+            document.getElementById("pacienteNome").value = pacienteNome || '';
+            document.getElementById("pacienteNome").setAttribute('data-uid', pacienteUID); // Opcional: para referência
+        }
+        if (document.getElementById("pacienteCPF")) {
+            document.getElementById("pacienteCPF").value = pacienteCPF || '';
+        }
+        if (document.getElementById("pacienteDataNascimento")) {
+            document.getElementById("pacienteDataNascimento").value = pacienteDataNascimento || '';
+        }
+        if (document.getElementById("pacienteSexo")) {
+            document.getElementById("pacienteSexo").value = pacienteSexo || '';
+        }
+        if (document.getElementById("pacienteTelefone")) {
+            document.getElementById("pacienteTelefone").value = pacienteTelefone || '';
+        }
+        if (document.getElementById("pacienteEmail")) {
+            document.getElementById("pacienteEmail").value = pacienteEmail || '';
+        }
+        if (document.getElementById("pacienteEndereco")) {
+            document.getElementById("pacienteEndereco").value = pacienteEndereco || '';
+        }
+        // ... (continuar para outros campos do paciente)
+    }
+
+    // Preencher os dados do profissional (CRM, Nome, UID) se a página os exibir
+    if (document.getElementById("profissionalNome")) { // Exemplo para o campo do profissional
+        document.getElementById("profissionalNome").value = profissionalNome || '';
+    }
+    if (document.getElementById("profissionalUIDDisplay")) {
+        document.getElementById("profissionalUIDDisplay").value = profissionalUID || '';
+    }
+    // No atendimentoambulatorial.html e apac.html, você tem o CRM e Nome do profissional hardcoded.
+    // Você pode usar o `profissionalNome` do localStorage para preencher em vez de hardcode.
+    // Ex: document.getElementById('medicoNome').textContent = profissionalNome;
+    // ou passar o profissionalNome e profissionalUID ao salvar no Firestore.
     const firebaseConfig = {
       apiKey: "AIzaSyB9GkSqTIZ0kbVsba_WOdQeVAETrF9qna0",
       authDomain: "wzzm-ce3fc.firebaseapp.com",
