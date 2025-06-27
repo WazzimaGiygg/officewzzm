@@ -1,387 +1,412 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ficha de Atendimento do Paciente</title>
-    <link href="https://fonts.googleapis.com/css2?family=Arial:wght@400;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Arial', sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f4f4f4;
-            line-height: 1.6;
-        }
-        .container {
-            max-width: 800px;
-            margin: 20px auto;
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        h1 {
-            color: #333;
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        form {
-            margin-bottom: 20px;
-        }
-        form label {
-            display: block;
-            margin-bottom: 5px;
-            color: #555;
-            font-weight: bold;
-        }
-        form input[type="text"],
-        form input[type="date"],
-        form textarea,
-        form select {
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 15px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            box-sizing: border-box;
-            font-size: 14px;
-        }
-        form textarea {
-            resize: vertical;
-            height: 100px;
-        }
-        form button {
-            background-color: #007bff;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-            transition: background-color 0.3s ease;
-            margin-top: 10px;
-        }
-        form button:hover {
-            background-color: #0056b3;
-        }
-        #export-import-controls {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 20px;
-        }
-        #export-import-controls button,
-        #export-import-controls label {
-            background-color: #28a745;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-            transition: background-color 0.3s ease;
-        }
-        #export-import-controls button:hover,
-        #export-import-controls label:hover {
-            background-color: #218838;
-        }
-        #export-import-controls input[type="file"] {
-            display: none;
-        }
-        #print-button {
-            background-color: #17a2b8;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-            transition: background-color 0.3s ease;
-            margin: 20px auto 0 auto;
-            display: block;
-            width: 200px;
-            text-align: center;
-        }
-        #print-button:hover {
-            background-color: #138496;
-        }
-        #message-box {
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: #d4edda;
-            color: #155724;
-            padding: 15px;
-            border: 1px solid #c3e6cb;
-            border-radius: 5px;
-            margin-bottom: 10px;
-            z-index: 1000;
-            opacity: 1;
-            transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
-        }
-        .message-box.fade-out {
-            opacity: 0;
-            transform: translateX(-50%) translateY(-20px);
-        }
-        .message-box.error {
-            background-color: #f8d7da;
-            color: #721c24;
-            border-color: #f5c6cb;
-        }
+  <meta charset="UTF-8">
+  <title>Atendimento Ambulatorial Comum</title>
+  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f4f4f4; display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; }
+    .container { max-width: 800px; width: 100%; background: white; padding: 30px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    .queue-container { max-width: 350px; width: 100%; background: white; padding: 20px; box-shadow: 0 0 10px rgba(0,0,0,0.1); align-self: flex-start; }
+    h1, h2 { text-align: center; color: #333; margin-bottom: 20px; }
+    .section-box { border: 1px solid #ccc; padding: 15px; margin-bottom: 20px; }
+    label { display: block; margin-top: 10px; font-weight: bold; }
+    input[type="text"], input[type="date"], input[type="email"], textarea { width: calc(100% - 16px); padding: 8px; margin-top: 4px; border: 1px solid #ddd; }
+    textarea { resize: vertical; }
+    .signature-line { border-bottom: 1px solid #000; margin-top: 50px; padding-bottom: 5px; text-align: center; }
+    .signature-label { margin-top: 5px; font-size: 0.9em; color: #555; }
+    button { margin-top: 20px; padding: 10px 20px; background: #3f51b5; color: white; border: none; cursor: pointer; }
+    button:hover { background: #303f9f; }
+    .success, .error { margin-top: 15px; font-weight: bold; }
+    .success { color: green; }
+    .error { color: red; }
+    .print-area { display: none; } /* Hidden by default for printing */
 
-        @media print {
-            body * {
-                visibility: hidden;
-            }
-            #printable-content, #printable-content * {
-                visibility: visible;
-            }
-            #printable-content {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100%;
-            }
-            #print-button, #export-import-controls, form {
-                display: none;
-            }
-            body {
-                background-color: #fff;
-            }
-            .container{
-                box-shadow: none;
-            }
-        }
-    </style>
+    /* Fila de Atendimento */
+    #fila-atendimento { list-style: none; padding: 0; }
+    .item-fila { background: #f9f9f9; border: 1px solid #eee; padding: 10px; margin-bottom: 10px; border-radius: 5px; text-align: left; }
+    .item-fila p { margin: 5px 0; }
+    .item-fila button.iniciar-atendimento { background: #28a745; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; margin-top: 10px; width: auto; display: block;}
+    .item-fila button.iniciar-atendimento:hover { background: #218838; }
+
+    @media print {
+      body * { visibility: hidden; }
+      .print-area, .print-area * { visibility: visible; }
+      .print-area { position: absolute; left: 0; top: 0; width: 100%; }
+      button, .success, .error, .queue-container, .patient-selection-section { display: none; } /* Hide buttons, messages, and queue when printing */
+      .container { width: 100%; margin: 0; box-shadow: none; padding: 0;}
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Ficha de Atendimento do Paciente</h1>
 
-        <form id="patient-form">
-            <label for="nome-completo">Nome Completo:</label>
-            <input type="text" id="nome-completo" name="nome-completo" required>
+  <div class="queue-container">
+    <h2>Fila de Atendimento</h2>
+    <div id="fila-atendimento">
+      <p>Carregando fila...</p>
+    </div>
+  </div>
 
-            <label for="data-nascimento">Data de Nascimento:</label>
-            <input type="date" id="data-nascimento" name="data-nascimento" required>
+  <div class="container">
+    <h1>ATENDIMENTO AMBULATORIAL COMUM</h1>
 
-            <label for="cpf">CPF:</label>
-            <input type="text" id="cpf" name="cpf" required>
-
-            <label for="rg">RG:</label>
-            <input type="text" id="rg" name="rg" required>
-
-            <label for="endereco">Endereço:</label>
-            <input type="text" id="endereco" name="endereco" required>
-
-            <label for="telefone">Telefone:</label>
-            <input type="text" id="telefone" name="telefone" required>
-
-            <label for="email">Email:</label>
-            <input type="text" id="email" name="email" required>
-
-            <label for="profissao">Profissão:</label>
-            <input type="text" id="profissao" name="profissao" required>
-
-            <label for="estado-civil">Estado Civil:</label>
-            <select id="estado-civil" name="estado-civil">
-                <option value="">Selecione</option>
-                <option value="solteiro">Solteiro(a)</option>
-                <option value="casado">Casado(a)</option>
-                <option value="divorciado">Divorciado(a)</option>
-                <option value="viuvo">Viúvo(a)</option>
-                <option value="outro">Outro</option>
-            </select>
-
-            <label for="queixa-principal">Queixa Principal:</label>
-            <textarea id="queixa-principal" name="queixa-principal" required></textarea>
-
-            <label for="historia-doenca-atual">História da Doença Atual:</label>
-            <textarea id="historia-doenca-atual" name="historia-doenca-atual" required></textarea>
-
-            <label for="historico-familiar">Histórico Familiar:</label>
-            <textarea id="historico-familiar" name="historico-familiar" required></textarea>
-
-            <label for="medicamentos-em-uso">Medicamentos em Uso:</label>
-            <textarea id="medicamentos-em-uso" name="medicamentos-em-uso" required></textarea>
-
-            <label for="alergias">Alergias:</label>
-            <textarea id="alergias" name="alergias" required></textarea>
-
-            <button type="submit">Salvar Ficha</button>
-        </form>
-
-        <div id="export-import-controls">
-            <button id="export-button">Exportar para JSON</button>
-            <label for="import-file">Importar de JSON</label>
-            <input type="file" id="import-file" accept=".json">
-            <button id="export-csv-button">Exportar para CSV</button>
-        </div>
-
-        <button id="print-button" onclick="exportAndPrint()">Imprimir Ficha</button>
-
-        <div id="printable-content" style="display: none;">
-            <h2>Ficha de Atendimento do Paciente</h2>
-            <div id="patient-data-display">
-            </div>
-        </div>
+    <div class="section-box">
+      <h2>Dados do Paciente</h2>
+      <label>Nome completo: <input type="text" id="pacienteNome" readonly></label>
+      <label>CPF: <input type="text" id="pacienteCPF" readonly></label>
+      <label>Data de Nascimento: <input type="date" id="pacienteDataNascimento" readonly></label>
+      <label>Telefone: <input type="text" id="pacienteTelefone" readonly></label>
+      <label>Email: <input type="email" id="pacienteEmail" readonly></label>
+      <label>Endereço: <textarea id="pacienteEndereco" rows="2" readonly></textarea></label>
+      <input type="hidden" id="hiddenPacienteUID">
     </div>
 
-    <script>
-        const patientForm = document.getElementById('patient-form');
-        const exportButton = document.getElementById('export-button');
-        const importFile = document.getElementById('import-file');
-        const messageBox = document.createElement('div');
-        messageBox.id = 'message-box';
-        document.body.appendChild(messageBox);
-        const exportCsvButton = document.getElementById('export-csv-button');
-        const printableContent = document.getElementById('printable-content');
-        const patientDataDisplay = document.getElementById('patient-data-display');
+    <div class="signature-line"></div>
+    <div class="signature-label">Assinatura do Paciente</div>
+
+    <div class="section-box">
+      <h2>Diagnóstico</h2>
+      <label>CID-10 (1): <input type="text" id="cid1"></label>
+      <label>CID-10 (2): <input type="text" id="cid2"></label>
+      <label>CID-10 (3): <input type="text" id="cid3"></label>
+      <label>CID-10 (4): <input type="text" id="cid4"></label>
+      <label>Descrição do Diagnóstico:
+        <textarea id="descricaoDiagnostico" rows="4"></textarea>
+      </label>
+    </div>
+
+    <div class="section-box">
+      <h2>Exames Solicitados (Não Laboratoriais)</h2>
+      <label>Exames:
+        <textarea id="examesNaoLaboratoriais" rows="3"></textarea>
+      </label>
+      <label>Justificativa dos Exames:
+        <textarea id="justificativaExames" rows="3"></textarea>
+      </label>
+    </div>
+
+    <div class="section-box">
+      <h2>Exames Laboratoriais</h2>
+      <label>Exames Laboratoriais:
+        <textarea id="examesLaboratoriais" rows="3"></textarea>
+      </label>
+    </div>
+
+    <div class="signature-line" style="margin-top: 70px;"></div>
+    <div class="signature-label">CRM: <span id="medicoCRM"></span> &nbsp;&nbsp;&nbsp; Nome do Profissional: <span id="medicoNome"></span></div>
+    <input type="hidden" id="hiddenProfissionalUID">
+
+    <button type="button" id="salvarAtendimento">Salvar Atendimento e Imprimir</button>
+    <div id="mensagem" class=""></div>
+
+    <div class="footer">
+      UID da Consulta: <span id="consultaUID">Gerado Automaticamente</span>
+    </div>
+  </div>
+
+  <div class="print-area" id="printContent">
+    <div style="text-align: center; margin-bottom: 20px;">
+      <h1>ATENDIMENTO AMBULATORIAL COMUM</h1>
+    </div>
+
+    <div style="border: 1px solid #000; padding: 10px; margin-bottom: 10px;">
+      <p><strong>Nome completo:</strong> <span id="printPacienteNome"></span></p>
+      <p><strong>CPF:</strong> <span id="printPacienteCPF"></span></p>
+      <p><strong>Data de Nascimento:</strong> <span id="printPacienteDataNascimento"></span></p>
+      <p><strong>Telefone:</strong> <span id="printPacienteTelefone"></span></p>
+      <p><strong>Email:</strong> <span id="printPacienteEmail"></span></p>
+      <p><strong>Endereço:</strong> <span id="printPacienteEndereco"></span></p>
+    </div>
+
+    <div style="margin-top: 30px; text-align: center;">Assinatura do Paciente: _________________________________________</div>
+
+    <div style="border: 1px solid #000; padding: 10px; margin-top: 20px;">
+      <h3>Diagnóstico</h3>
+      <p><strong>CID-10 (1):</strong> <span id="printCid1"></span></p>
+      <p><strong>CID-10 (2):</strong> <span id="printCid2"></span></p>
+      <p><strong>CID-10 (3):</strong> <span id="printCid3"></span></p>
+      <p><strong>CID-10 (4):</strong> <span id="printCid4"></span></p>
+      <p><strong>Descrição do Diagnóstico:</strong> <span id="printDescricaoDiagnostico"></span></p>
+    </div>
+
+    <div style="border: 1px solid #000; padding: 10px; margin-top: 20px;">
+      <h3>Exames Solicitados (Não Laboratoriais)</h3>
+      <p><strong>Exames:</strong> <span id="printExamesNaoLaboratoriais"></span></p>
+      <p><strong>Justificativa:</strong> <span id="printJustificativaExames"></span></p>
+    </div>
+
+    <div style="border: 1px solid #000; padding: 10px; margin-top: 20px;">
+      <h3>Exames Laboratoriais</h3>
+      <p><strong>Exames:</strong> <span id="printExamesLaboratoriais"></span></p>
+    </div>
+
+    <div style="margin-top: 50px; text-align: right;">
+      <p>CRM: <span id="printMedicoCRM"></span></p>
+      <p>Nome do Profissional: <span id="printMedicoNome"></span></p>
+      <p>Assinatura do Profissional: _________________________________________</p>
+    </div>
+
+    <div style="text-align: right; margin-top: 30px; font-size: 0.8em; color: #777;">
+      UID da Consulta: <span id="printConsultaUID"></span>
+    </div>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyB9GkSqTIZ0kbVsba_WOdQeVAETrF9qna0",
+      authDomain: "wzzm-ce3fc.firebaseapp.com",
+      projectId: "wzzm-ce3fc",
+      storageBucket: "wzzm-ce3fc.appspot.com",
+      messagingSenderId: "249427877153",
+      appId: "1:249427877153:web:0e4297294794a5aadeb260",
+      measurementId: "G-PLKNZNFCQ8"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const firestore = firebase.firestore();
+
+    let currentPacienteUID = null; // UID do paciente atualmente carregado no formulário
+    let currentFilaDocId = null; // ID do documento na coleção 'filaAtendimento'
+
+    const mensagemDiv = document.getElementById("mensagem");
+    const medicoCRM = document.getElementById('medicoCRM');
+    const medicoNome = document.getElementById('medicoNome');
+    const hiddenProfissionalUID = document.getElementById('hiddenProfissionalUID');
+
+    const pacienteNomeInput = document.getElementById("pacienteNome");
+    const pacienteCPFInput = document.getElementById("pacienteCPF");
+    const pacienteDataNascimentoInput = document.getElementById("pacienteDataNascimento");
+    const pacienteTelefoneInput = document.getElementById("pacienteTelefone");
+    const pacienteEmailInput = document.getElementById("pacienteEmail");
+    const pacienteEnderecoInput = document.getElementById("pacienteEndereco");
+    const hiddenPacienteUID = document.getElementById("hiddenPacienteUID");
+
+    const filaAtendimentoDiv = document.getElementById("fila-atendimento");
 
 
-        function showMessage(message, type = 'success') {
-            messageBox.textContent = message;
-            messageBox.className = `message-box ${type}`;
-            document.body.appendChild(messageBox);
+    // Função para carregar os dados do paciente no formulário principal
+    function loadPatientDataToForm(pacienteData) {
+        pacienteNomeInput.value = pacienteData.nome || '';
+        pacienteCPFInput.value = pacienteData.cpf || '';
+        pacienteDataNascimentoInput.value = pacienteData.dataNascimento || '';
+        pacienteTelefoneInput.value = pacienteData.telefone || '';
+        pacienteEmailInput.value = pacienteData.email || '';
+        pacienteEnderecoInput.value = pacienteData.endereco || '';
+        hiddenPacienteUID.value = pacienteData.uid; // Define o UID oculto
+        currentPacienteUID = pacienteData.uid; // Atualiza a variável global
+    }
 
-            setTimeout(() => {
-                messageBox.classList.add('fade-out');
-                setTimeout(() => {
-                    messageBox.remove();
-                }, 500);
-            }, 3000);
-        }
+    // Função para limpar o formulário de atendimento
+    function clearAtendimentoForm() {
+        document.getElementById("cid1").value = '';
+        document.getElementById("cid2").value = '';
+        document.getElementById("cid3").value = '';
+        document.getElementById("cid4").value = '';
+        document.getElementById("descricaoDiagnostico").value = '';
+        document.getElementById("examesNaoLaboratoriais").value = '';
+        document.getElementById("justificativaExames").value = '';
+        document.getElementById("examesLaboratoriais").value = '';
+        document.getElementById("consultaUID").textContent = "Gerado Automaticamente";
+        // Limpar dados do paciente no formulário (se necessário, ou manter para novo atendimento)
+        pacienteNomeInput.value = '';
+        pacienteCPFInput.value = '';
+        pacienteDataNascimentoInput.value = '';
+        pacienteTelefoneInput.value = '';
+        pacienteEmailInput.value = '';
+        pacienteEnderecoInput.value = '';
+        hiddenPacienteUID.value = '';
+        currentPacienteUID = null;
+        currentFilaDocId = null;
+    }
 
-        function salvarFicha(event) {
-            event.preventDefault();
 
-            const formData = new FormData(patientForm);
-            const patientData = {};
+    document.addEventListener("DOMContentLoaded", async () => {
+      const profissionalUID = localStorage.getItem('profissionalUID');
+      const profissionalNome = localStorage.getItem('profissionalNome');
+      // O CRM não está no localStorage, assumimos um padrão ou buscaríamos do Firestore do profissional
+      // Por enquanto, mantenha o padrão ou adicione ao Firebase 'profissionais'
+      const profissionalCRM = "CRM/SP 123456";
 
-            formData.forEach((value, key) => {
-                patientData[key] = value;
+      if (!profissionalUID) {
+        alert("Sessão do profissional expirada. Por favor, faça login novamente no menu principal.");
+        window.location.href = "index.html";
+        return;
+      }
+
+      medicoCRM.textContent = profissionalCRM;
+      medicoNome.textContent = profissionalNome;
+      hiddenProfissionalUID.value = profissionalUID;
+
+      // Carregar paciente previamente selecionado do localStorage, se houver
+      const pacienteUIDLocalStorage = localStorage.getItem('pacienteUIDSelecionado');
+      if (pacienteUIDLocalStorage) {
+          try {
+              const pacienteDoc = await firestore.collection("clientepaciente").doc(pacienteUIDLocalStorage).get();
+              if (pacienteDoc.exists) {
+                  loadPatientDataToForm({ uid: pacienteDoc.id, ...pacienteDoc.data() });
+              } else {
+                  mensagemDiv.textContent = "Paciente previamente selecionado não encontrado. Por favor, selecione outro.";
+                  mensagemDiv.className = "error";
+                  localStorage.removeItem('pacienteUIDSelecionado'); // Limpa seleção inválida
+              }
+          } catch (error) {
+              console.error("Erro ao carregar paciente do localStorage:", error);
+              mensagemDiv.textContent = "Erro ao carregar dados do paciente selecionado.";
+              mensagemDiv.className = "error";
+          }
+      } else {
+        // Se nenhum paciente foi pré-selecionado, o formulário de atendimento ficará vazio,
+        // mas a fila de atendimento ainda será exibida.
+        mensagemDiv.textContent = "Nenhum paciente selecionado. Por favor, inicie um atendimento pela fila ou volte ao menu principal.";
+        mensagemDiv.className = "error";
+      }
+
+      // Listener em tempo real para a fila de atendimento
+      firestore.collection("filaAtendimento")
+        .where("status", "==", "Aguardando Atendimento")
+        .orderBy("dataChegada", "asc")
+        .onSnapshot((snapshot) => {
+          filaAtendimentoDiv.innerHTML = ''; // Limpa a lista atual
+          if (snapshot.empty) {
+            filaAtendimentoDiv.innerHTML = '<p>Nenhum paciente na fila no momento.</p>';
+            return;
+          }
+
+          snapshot.forEach(doc => {
+            const pacienteFila = doc.data();
+            const filaDocId = doc.id; // ID do documento da fila
+
+            const itemFila = document.createElement('div');
+            itemFila.className = 'item-fila';
+            
+            const dataChegada = pacienteFila.dataChegada ? new Date(pacienteFila.dataChegada.toDate()).toLocaleTimeString('pt-BR') : 'N/A';
+
+            itemFila.innerHTML = `
+              <p><strong>Paciente:</strong> ${pacienteFila.nomePaciente}</p>
+              <p><strong>Chegada:</strong> ${dataChegada}</p>
+              <button class="iniciar-atendimento" data-patient-uid="${pacienteFila.pacienteUID}" data-fila-doc-id="${filaDocId}">Iniciar Atendimento</button>
+            `;
+            filaAtendimentoDiv.appendChild(itemFila);
+          });
+
+          // Adiciona listeners para os botões "Iniciar Atendimento"
+          document.querySelectorAll('.iniciar-atendimento').forEach(button => {
+              button.addEventListener('click', async (e) => {
+                  const selectedPatientUID = e.target.dataset.patientUid;
+                  const selectedFilaDocId = e.target.dataset.filaDocId;
+
+                  // 1. Carregar dados completos do paciente para o formulário
+                  try {
+                      const pacienteDoc = await firestore.collection("clientepaciente").doc(selectedPatientUID).get();
+                      if (pacienteDoc.exists) {
+                          loadPatientDataToForm({ uid: pacienteDoc.id, ...pacienteDoc.data() });
+                          currentFilaDocId = selectedFilaDocId; // Armazena o ID do documento da fila
+                          mensagemDiv.textContent = `Paciente ${pacienteDoc.data().nome} carregado para atendimento.`;
+                          mensagemDiv.className = "success";
+                      } else {
+                          console.error("Paciente não encontrado no clientepaciente:", selectedPatientUID);
+                          mensagemDiv.textContent = "Erro: Paciente não encontrado para carregar.";
+                          mensagemDiv.className = "error";
+                      }
+                  } catch (error) {
+                      console.error("Erro ao carregar paciente para iniciar atendimento:", error);
+                      mensagemDiv.textContent = "Erro ao carregar paciente para iniciar atendimento.";
+                      mensagemDiv.className = "error";
+                  }
+              });
+          });
+        }, (error) => {
+          console.error("Erro ao carregar fila de atendimento:", error);
+          filaAtendimentoDiv.innerHTML = '<p>Erro ao carregar a fila de atendimento.</p>';
+        });
+    });
+
+    document.getElementById("salvarAtendimento").addEventListener("click", async () => {
+      const user = auth.currentUser;
+
+      if (!user) {
+        mensagemDiv.textContent = "Você precisa estar logado para registrar o atendimento.";
+        mensagemDiv.className = "error";
+        return;
+      }
+
+      if (!currentPacienteUID) {
+        mensagemDiv.textContent = "Nenhum paciente selecionado para o atendimento. Por favor, selecione um paciente da fila ou no menu principal.";
+        mensagemDiv.className = "error";
+        return;
+      }
+
+      const atendimento = {
+        pacienteUID: currentPacienteUID,
+        profissionalUID: hiddenProfissionalUID.value,
+        dataAtendimento: firebase.firestore.FieldValue.serverTimestamp(), // Usa timestamp do servidor
+        cids: [
+          document.getElementById("cid1").value,
+          document.getElementById("cid2").value,
+          document.getElementById("cid3").value,
+          document.getElementById("cid4").value
+        ].filter(cid => cid), // Filtra CIDs vazios
+        descricaoDiagnostico: document.getElementById("descricaoDiagnostico").value,
+        examesNaoLaboratoriais: document.getElementById("examesNaoLaboratoriais").value,
+        justificativaExames: document.getElementById("justificativaExames").value,
+        examesLaboratoriais: document.getElementById("examesLaboratoriais").value,
+        profissionalCRM: medicoCRM.textContent,
+        profissionalNome: medicoNome.textContent
+      };
+
+      try {
+        const docRef = await firestore.collection("atendimentos").add(atendimento);
+        const consultaUID = docRef.id;
+
+        document.getElementById("consultaUID").textContent = consultaUID;
+        mensagemDiv.textContent = "Atendimento salvo com sucesso!";
+        mensagemDiv.className = "success";
+
+        // Atualizar o status do paciente na fila para "Atendido" ou "Concluído"
+        if (currentFilaDocId) {
+            await firestore.collection("filaAtendimento").doc(currentFilaDocId).update({
+                status: "Atendido",
+                dataFimAtendimento: firebase.firestore.FieldValue.serverTimestamp()
             });
-
-            console.log('Dados do Paciente:', patientData);
-            showMessage('Ficha do paciente salva com sucesso!');
-            patientForm.reset();
-            displayPatientDataForPrint(patientData);
         }
 
-        function exportToJson() {
-            const formData = new FormData(patientForm);
-            const patientData = {};
+        // Preencher área de impressão
+        document.getElementById("printPacienteNome").textContent = pacienteNomeInput.value;
+        document.getElementById("printPacienteCPF").textContent = pacienteCPFInput.value;
+        document.getElementById("printPacienteDataNascimento").textContent = pacienteDataNascimentoInput.value;
+        document.getElementById("printPacienteTelefone").textContent = pacienteTelefoneInput.value;
+        document.getElementById("printPacienteEmail").textContent = pacienteEmailInput.value;
+        document.getElementById("printPacienteEndereco").textContent = pacienteEnderecoInput.value;
+        document.getElementById("printCid1").textContent = document.getElementById("cid1").value;
+        document.getElementById("printCid2").textContent = document.getElementById("cid2").value;
+        document.getElementById("printCid3").textContent = document.getElementById("cid3").value;
+        document.getElementById("printCid4").textContent = document.getElementById("cid4").value;
+        document.getElementById("printDescricaoDiagnostico").textContent = document.getElementById("descricaoDiagnostico").value;
+        document.getElementById("printExamesNaoLaboratoriais").textContent = document.getElementById("examesNaoLaboratoriais").value;
+        document.getElementById("printJustificativaExames").textContent = document.getElementById("justificativaExames").value;
+        document.getElementById("printExamesLaboratoriais").textContent = document.getElementById("examesLaboratoriais").value;
+        document.getElementById("printMedicoCRM").textContent = medicoCRM.textContent;
+        document.getElementById("printMedicoNome").textContent = medicoNome.textContent;
+        document.getElementById("printConsultaUID").textContent = consultaUID;
 
-            formData.forEach((value, key) => {
-                patientData[key] = value;
-            });
+        // Ativar impressão
+        window.print();
 
-            if (Object.keys(patientData).length === 0) {
-                showMessage('Não há dados para exportar!', 'error');
-                return;
-            }
+        // Opcional: Limpar formulário após salvar e imprimir, e remover seleção do paciente
+        clearAtendimentoForm();
+        localStorage.removeItem('pacienteUIDSelecionado'); // Garante que a próxima entrada seja do zero
+        localStorage.removeItem('pacienteNomeSelecionado');
+        // ... remover outros itens do paciente se necessário
+      } catch (error) {
+        console.error("Erro ao salvar atendimento:", error);
+        mensagemDiv.textContent = "Erro ao salvar atendimento: " + error.message;
+        mensagemDiv.className = "error";
+      }
+    });
+  </script>
 
-            const jsonData = JSON.stringify(patientData, null, 2);
-            const blob = new Blob([jsonData], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'ficha_paciente.json';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            showMessage('Ficha do paciente exportada com sucesso!');
-        }
-
-        function exportToCsv() {
-            const formData = new FormData(patientForm);
-            const patientData = {};
-
-            formData.forEach((value, key) => {
-                patientData[key] = value;
-            });
-
-             if (Object.keys(patientData).length === 0) {
-                showMessage('Não há dados para exportar!', 'error');
-                return;
-            }
-
-            let csvContent = "Nome Completo,Data de Nascimento,CPF,RG,Endereço,Telefone,Email,Profissão,Estado Civil,Queixa Principal,História da Doença Atual,Histórico Familiar,Medicamentos em Uso,Alergias\n";
-            csvContent += `${patientData["nome-completo"] || ""},${patientData["data-nascimento"] || ""},${patientData["cpf"] || ""},${patientData["rg"] || ""},${patientData["endereco"] || ""},${patientData["telefone"] || ""},${patientData["email"] || ""},${patientData["profissao"] || ""},${patientData["estado-civil"] || ""},${patientData["queixa-principal"] || ""},${patientData["historia-doenca-atual"] || ""},${patientData["historico-familiar"] || ""},${patientData["medicamentos-em-uso"] || ""},${patientData["alergias"] || ""}\n`;
-
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'ficha_paciente.csv';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            showMessage('Ficha do paciente exportada para CSV com sucesso!');
-        }
-
-
-
-        function importFromJson(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                try {
-                    const importedData = JSON.parse(e.target.result);
-                    const formElements = patientForm.elements;
-
-                    for (const key in importedData) {
-                        if (formElements[key]) {
-                            if (formElements[key].type === 'select-one') {
-                                formElements[key].value = importedData[key];
-                            } else if (formElements[key].type === 'textarea') {
-                                formElements[key].value = importedData[key];
-                            }
-                             else {
-                                formElements[key].value = importedData[key];
-                            }
-                        }
-                    }
-                    showMessage('Ficha do paciente importada com sucesso!');
-                } catch (error) {
-                    showMessage('Erro ao processar o arquivo JSON.', 'error');
-                }
-            };
-            reader.readAsText(file);
-        }
-
-        function exportAndPrint() {
-            const formData = new FormData(patientForm);
-            const patientData = {};
-
-            formData.forEach((value, key) => {
-                patientData[key] = value;
-            });
-            displayPatientDataForPrint(patientData)
-            window.print();
-
-        }
-
-        function displayPatientDataForPrint(data) {
-            patientDataDisplay.innerHTML = '';
-            for (const key in data) {
-                const label = document.createElement('p');
-                label.innerHTML = `<strong>${key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}:</strong> ${data[key]}`;
-                patientDataDisplay.appendChild(label);
-            }
-            printableContent.style.display = 'block';
-        }
-
-
-        patientForm.addEventListener('submit', salvarFicha);
-        exportButton.addEventListener('click', exportToJson);
-        importFile.addEventListener('change', importFromJson);
-        exportCsvButton.addEventListener('click', exportToCsv);
-    </script>
 </body>
 </html>
