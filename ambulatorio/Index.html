@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Menu Principal - Sistema de Atendimento</title>
+  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; background: #f4f4f4; margin: 0; }
+    .container { background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); text-align: center; max-width: 500px; width: 90%; }
+    h1 { color: #3f51b5; margin-bottom: 30px; }
+    .auth-section { margin-bottom: 30px; }
+    #google-login-button {
+      background-color: #4285F4;
+      color: white;
+      border: none;
+      padding: 12px 25px;
+      font-size: 1.1em;
+      border-radius: 5px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto;
+    }
+    #google-login-button img { margin-right: 10px; }
+    #google-login-button:hover { background-color: #357ae8; }
+
+    .menu-links { margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; }
+    .menu-links a {
+      display: block;
+      background: #007bff;
+      color: white;
+      padding: 12px 20px;
+      margin-bottom: 10px;
+      border-radius: 5px;
+      text-decoration: none;
+      font-size: 1.1em;
+      transition: background 0.3s ease;
+    }
+    .menu-links a:hover { background: #0056b3; }
+    .menu-links a.disabled { background: #cccccc; cursor: not-allowed; }
+    .status-message { margin-top: 20px; font-weight: bold; }
+    .status-message.success { color: green; }
+    .status-message.error { color: red; }
+    .user-info { margin-top: 20px; padding: 10px; border: 1px dashed #ccc; border-radius: 5px; background: #f9f9f9; }
+    .user-info p { margin: 5px 0; }
+    .logout-button { background: #dc3545; margin-top: 15px; }
+    .logout-button:hover { background: #c82333; }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>Sistema de Atendimento Médico</h1>
+
+    <div class="auth-section" id="auth-section">
+      <p id="auth-status">Faça login para acessar as funcionalidades.</p>
+      <button id="google-login-button">
+        <img width="20px" alt="Google sign-in" src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/Google_%22G%22_Logo.svg/512px-Google_%22G%22_Logo.svg.png" />
+        Entrar com Google
+      </button>
+      <div id="user-info" class="user-info" style="display:none;">
+        <p>Logado como: <strong id="display-user-name"></strong></p>
+        <p>E-mail: <strong id="display-user-email"></strong></p>
+        <p>Seu UID (Google): <strong id="display-user-uid"></strong></p>
+        <button id="logout-button" class="logout-button">Sair</button>
+      </div>
+    </div>
+
+    <div class="menu-links">
+      <a href="cadastroprofissional.html" id="link-cadastro-profissional">Cadastro de Profissional (Manual)</a>
+      <a href="cadastropaciente.html" id="link-cadastro-paciente" class="disabled">Cadastro de Paciente</a>
+      <a href="atendimentoambulatorial.html" id="link-atendimento" class="disabled">Atendimento Ambulatorial</a>
+      <a href="apac.html" id="link-apac" class="disabled">Solicitação de APAC</a>
+    </div>
+
+    <div id="mensagem" class="status-message"></div>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyB9GkSqTIZ0kbVsba_WOdQeVAETrF9qna0",
+      authDomain: "wzzm-ce3fc.firebaseapp.com",
+      projectId: "wzzm-ce3fc",
+      storageBucket: "wzzm-ce3fc.appspot.com",
+      messagingSenderId: "249427877153",
+      appId: "1:249427877153:web:0e4297294794a5aadeb260",
+      measurementId: "G-PLKNZNFCQ8"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const firestore = firebase.firestore();
+    const googleProvider = new firebase.auth.GoogleAuthProvider();
+
+    const authStatus = document.getElementById("auth-status");
+    const googleLoginButton = document.getElementById("google-login-button");
+    const logoutButton = document.getElementById("logout-button");
+    const userInfoDiv = document.getElementById("user-info");
+    const displayUserName = document.getElementById("display-user-name");
+    const displayUserEmail = document.getElementById("display-user-email");
+    const displayUserUid = document.getElementById("display-user-uid");
+    const mensagemDiv = document.getElementById("mensagem");
+
+    const linkCadastroPaciente = document.getElementById("link-cadastro-paciente");
+    const linkAtendimento = document.getElementById("link-atendimento");
+    const linkApac = document.getElementById("link-apac");
+    const linkCadastroProfissional = document.getElementById("link-cadastro-profissional"); // Este pode ser sempre visível, mas o foco é o login Google
+
+    // Função para habilitar/desabilitar links
+    function toggleMenuLinks(enabled) {
+      if (enabled) {
+        linkCadastroPaciente.classList.remove("disabled");
+        linkAtendimento.classList.remove("disabled");
+        linkApac.classList.remove("disabled");
+        linkCadastroPaciente.style.pointerEvents = 'auto';
+        linkAtendimento.style.pointerEvents = 'auto';
+        linkApac.style.pointerEvents = 'auto';
+      } else {
+        linkCadastroPaciente.classList.add("disabled");
+        linkAtendimento.classList.add("disabled");
+        linkApac.classList.add("disabled");
+        linkCadastroPaciente.style.pointerEvents = 'none';
+        linkAtendimento.style.pointerEvents = 'none';
+        linkApac.style.pointerEvents = 'none';
+      }
+    }
+
+    // Listener para o estado da autenticação
+    auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        // Usuário logado
+        authStatus.textContent = "Logado com sucesso!";
+        googleLoginButton.style.display = "none";
+        userInfoDiv.style.display = "block";
+        displayUserName.textContent = user.displayName || "Não informado";
+        displayUserEmail.textContent = user.email || "Não informado";
+        displayUserUid.textContent = user.uid;
+        toggleMenuLinks(true);
+
+        // Armazena o UID no localStorage para outras páginas
+        localStorage.setItem('profissionalUID', user.uid);
+        localStorage.setItem('profissionalNome', user.displayName || '');
+        localStorage.setItem('profissionalEmail', user.email || '');
+
+        // Verificar se o profissional existe no Firestore e cadastrar se não
+        try {
+          const profissionalDoc = await firestore.collection("profissionais").doc(user.uid).get();
+          if (!profissionalDoc.exists) {
+            await firestore.collection("profissionais").doc(user.uid).set({
+              uid: user.uid,
+              nome: user.displayName || "Profissional sem nome",
+              email: user.email || "email@nao.informado",
+              dataCadastro: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            mensagemDiv.textContent = "Seu cadastro de profissional foi criado no sistema.";
+            mensagemDiv.className = "status-message success";
+          } else {
+            mensagemDiv.textContent = "Bem-vindo(a) de volta, " + (user.displayName || user.email) + "!";
+            mensagemDiv.className = "status-message success";
+          }
+        } catch (error) {
+          console.error("Erro ao verificar/cadastrar profissional:", error);
+          mensagemDiv.textContent = "Erro ao verificar ou cadastrar seu perfil de profissional.";
+          mensagemDiv.className = "status-message error";
+        }
+
+      } else {
+        // Usuário deslogado
+        authStatus.textContent = "Faça login para acessar as funcionalidades.";
+        googleLoginButton.style.display = "block";
+        userInfoDiv.style.display = "none";
+        toggleMenuLinks(false);
+        localStorage.removeItem('profissionalUID');
+        localStorage.removeItem('profissionalNome');
+        localStorage.removeItem('profissionalEmail');
+        mensagemDiv.textContent = "";
+      }
+    });
+
+    // Event listener para o botão de login com Google
+    googleLoginButton.addEventListener("click", async () => {
+      try {
+        await auth.signInWithPopup(googleProvider);
+        // onAuthStateChanged cuidará da atualização da UI
+      } catch (error) {
+        console.error("Erro no login com Google:", error);
+        mensagemDiv.textContent = "Erro no login: " + error.message;
+        mensagemDiv.className = "status-message error";
+      }
+    });
+
+    // Event listener para o botão de logout
+    logoutButton.addEventListener("click", async () => {
+      try {
+        await auth.signOut();
+        mensagemDiv.textContent = "Você foi desconectado(a).";
+        mensagemDiv.className = "status-message success";
+      } catch (error) {
+        console.error("Erro ao fazer logout:", error);
+        mensagemDiv.textContent = "Erro ao fazer logout: " + error.message;
+        mensagemDiv.className = "status-message error";
+      }
+    });
+  </script>
+
+</body>
+</html>

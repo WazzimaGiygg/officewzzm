@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Cadastro de Profissional</title>
+  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f0f0f0; }
+    label { display: block; margin-top: 12px; }
+    input, select, textarea { width: 100%; padding: 8px; margin-top: 4px; }
+    button { margin-top: 20px; padding: 10px 20px; background: #3f51b5; color: white; border: none; }
+    .success, .error { margin-top: 15px; font-weight: bold; }
+    .success { color: green; }
+    .error { color: red; }
+  </style>
+</head>
+<body>
+
+  <h2>Cadastro de Profissional da Saúde</h2>
+
+  <form id="form-profissional">
+    <label>Nome completo:
+      <input type="text" id="nome" required>
+    </label>
+
+    <label>Tipo de profissional (ex: CRM, CRP, COREN):
+      <input type="text" id="tipoProfissional" required>
+    </label>
+
+    <label>Código do conselho:
+      <input type="text" id="codigoConselho" required>
+    </label>
+
+    <label>CPF ou CNPJ:
+      <input type="text" id="cpfOuCnpj" required>
+    </label>
+
+    <label>Telefone:
+      <input type="text" id="telefone">
+    </label>
+
+    <label>Data de nascimento:
+      <input type="date" id="dataNascimento">
+    </label>
+
+    <label>Instituição de graduação:
+      <input type="text" id="instituicaoGraduacao">
+    </label>
+
+    <label>Ano de graduação:
+      <input type="number" id="anoGraduacao">
+    </label>
+
+    <label>Especialidades (separadas por vírgula):
+      <textarea id="especialidades" rows="2"></textarea>
+    </label>
+
+    <button type="submit">Cadastrar</button>
+    <div id="mensagem" class=""></div>
+  </form>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyB9GkSqTIZ0kbVsba_WOdQeVAETrF9qna0",
+      authDomain: "wzzm-ce3fc.firebaseapp.com",
+      projectId: "wzzm-ce3fc",
+      storageBucket: "wzzm-ce3fc.appspot.com",
+      messagingSenderId: "249427877153",
+      appId: "1:249427877153:web:0e4297294794a5aadeb260",
+      measurementId: "G-PLKNZNFCQ8"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const firestore = firebase.firestore();
+
+    document.getElementById("form-profissional").addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const user = auth.currentUser;
+      const mensagem = document.getElementById("mensagem");
+
+      if (!user) {
+        mensagem.textContent = "Você precisa estar logado para cadastrar.";
+        mensagem.className = "error";
+        return;
+      }
+
+      const data = {
+        uid: user.uid,
+        nome: document.getElementById("nome").value,
+        tipoProfissional: document.getElementById("tipoProfissional").value,
+        codigoConselho: document.getElementById("codigoConselho").value,
+        cpfOuCnpj: document.getElementById("cpfOuCnpj").value,
+        telefone: document.getElementById("telefone").value,
+        dataNascimento: document.getElementById("dataNascimento").value,
+        instituicaoGraduacao: document.getElementById("instituicaoGraduacao").value,
+        anoGraduacao: document.getElementById("anoGraduacao").value,
+        especialidades: document.getElementById("especialidades").value.split(",").map(e => e.trim())
+      };
+
+      try {
+        await firestore.collection("profissional").doc(user.uid).set(data);
+        mensagem.textContent = "Cadastro realizado com sucesso!";
+        mensagem.className = "success";
+      } catch (error) {
+        console.error("Erro ao salvar:", error);
+        mensagem.textContent = "Erro ao salvar os dados. Tente novamente.";
+        mensagem.className = "error";
+      }
+    });
+  </script>
+
+</body>
+</html>

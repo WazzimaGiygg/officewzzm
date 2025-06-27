@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Solicitação de APAC - Exames de Alto Custo</title>
+  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f4f4f4; }
+    .container { max-width: 900px; margin: 0 auto; background: white; padding: 30px; box-shadow: 0 0 10px rgba(0,0,0,0.1); border: 1px solid #ddd; }
+    h1 { text-align: center; color: #0056b3; margin-bottom: 25px; border-bottom: 2px solid #0056b3; padding-bottom: 10px; }
+    h2 { color: #333; margin-top: 25px; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+    .section-box { border: 1px solid #ccc; padding: 15px; margin-bottom: 20px; background: #f9f9f9; }
+    label { display: block; margin-top: 10px; font-weight: bold; }
+    input[type="text"], input[type="date"], textarea { width: calc(100% - 16px); padding: 8px; margin-top: 4px; border: 1px solid #ddd; }
+    textarea { resize: vertical; min-height: 60px; }
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    .full-width { grid-column: 1 / -1; }
+    .signature-line { border-bottom: 1px solid #000; margin-top: 50px; padding-bottom: 5px; text-align: center; }
+    .signature-label { margin-top: 5px; font-size: 0.9em; color: #555; }
+    .footer { text-align: right; margin-top: 30px; font-size: 0.8em; color: #777; }
+    button { margin-top: 20px; padding: 10px 20px; background: #28a745; color: white; border: none; cursor: pointer; font-size: 1em; }
+    button:hover { background: #218838; }
+    .success, .error { margin-top: 15px; font-weight: bold; }
+    .success { color: green; }
+    .error { color: red; }
+
+    /* Estilos para impressão */
+    @media print {
+      body * { visibility: hidden; }
+      .print-area, .print-area * { visibility: visible; }
+      .print-area { position: absolute; left: 0; top: 0; width: 100%; padding: 20px; box-sizing: border-box; background: white; }
+      button, .success, .error { display: none; }
+      .container { box-shadow: none; border: none; } /* Remove shadow and border for print */
+      h1, h2 { color: #000; border-bottom: 1px solid #000; }
+      .section-box { border: 1px solid #000; background: none; }
+      input[type="text"], input[type="date"], textarea { border: none; padding: 0; margin: 0; width: auto; }
+      label { font-weight: bold; display: inline-block; margin-right: 5px; }
+      .info-grid { display: block; } /* Make grid items block for simpler print layout */
+      .info-grid div { margin-bottom: 10px; }
+      .signature-line { border-bottom: 1px solid #000; margin-top: 30px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>SOLICITAÇÃO DE APAC - EXAMES DE ALTO CUSTO (SUS)</h1>
+
+    <div class="section-box">
+      <h2>Dados do Paciente</h2>
+      <div class="info-grid">
+        <div><label>Nome completo:</label><input type="text" id="pacienteNome" readonly></div>
+        <div><label>CPF:</label><input type="text" id="pacienteCPF" readonly></div>
+        <div><label>Data de Nascimento:</label><input type="date" id="pacienteDataNascimento" readonly></div>
+        <div><label>Sexo:</label><input type="text" id="pacienteSexo" readonly></div>
+        <div><label>Telefone:</label><input type="text" id="pacienteTelefone" readonly></div>
+        <div><label>E-mail:</label><input type="email" id="pacienteEmail" readonly></div>
+        <div class="full-width"><label>Endereço completo:</label><textarea id="pacienteEndereco" rows="2" readonly></textarea></div>
+      </div>
+    </div>
+
+    <div class="section-box">
+      <h2>Dados da Solicitação (APAC)</h2>
+      <label>Procedimento/Exame Solicitado (Nome Completo e Código SUS, se souber):
+        <textarea id="procedimentoAPAC" rows="3" required></textarea>
+      </label>
+      <label>Diagnóstico Principal (CID-10):
+        <input type="text" id="diagnosticoCID" required>
+      </label>
+      <label>Justificativa Clínica Detalhada para o Exame de Alto Custo:
+        <textarea id="justificativaAPAC" rows="5" required></textarea>
+      </label>
+      <label>Data da Solicitação:
+        <input type="date" id="dataSolicitacao" value="<?php echo date('Y-m-d'); ?>" required>
+      </label>
+    </div>
+
+    <div class="section-box">
+      <h2>Dados do Solicitante (Profissional)</h2>
+      <div class="info-grid">
+        <div><label>Nome do Profissional:</label><input type="text" id="profissionalNome" readonly></div>
+        <div><label>CRM/Registro:</label><input type="text" id="profissionalCRM" readonly></div>
+        <div><label>UID do Profissional:</label><input type="text" id="profissionalUIDDisplay" readonly></div>
+      </div>
+    </div>
+
+    <div class="signature-line"></div>
+    <div class="signature-label">Assinatura do Profissional / Carimbo</div>
+
+    <button type="button" id="salvarAPAC">Salvar Solicitação e Imprimir APAC</button>
+    <div id="mensagem" class=""></div>
+
+    <div class="footer">
+      UID da Solicitação APAC: <span id="apacUID">Gerado Automaticamente</span>
+    </div>
+  </div>
+
+  <div class="print-area" id="printContent">
+    <div style="text-align: center; margin-bottom: 20px;">
+      <h1>SOLICITAÇÃO DE APAC - EXAMES DE ALTO CUSTO (SUS)</h1>
+    </div>
+
+    <div style="border: 1px solid #000; padding: 10px; margin-bottom: 10px;">
+      <h2 style="margin-top: 0; border-bottom: 1px solid #000;">Dados do Paciente</h2>
+      <p><strong>Nome completo:</strong> <span id="printPacienteNome"></span></p>
+      <p><strong>CPF:</strong> <span id="printPacienteCPF"></span></p>
+      <p><strong>Data de Nascimento:</strong> <span id="printPacienteDataNascimento"></span></p>
+      <p><strong>Sexo:</strong> <span id="printPacienteSexo"></span></p>
+      <p><strong>Telefone:</strong> <span id="printPacienteTelefone"></span></p>
+      <p><strong>E-mail:</strong> <span id="printPacienteEmail"></span></p>
+      <p><strong>Endereço completo:</strong> <span id="printPacienteEndereco"></span></p>
+    </div>
+
+    <div style="border: 1px solid #000; padding: 10px; margin-top: 20px;">
+      <h2 style="margin-top: 0; border-bottom: 1px solid #000;">Dados da Solicitação (APAC)</h2>
+      <p><strong>Procedimento/Exame Solicitado:</strong> <span id="printProcedimentoAPAC"></span></p>
+      <p><strong>Diagnóstico Principal (CID-10):</strong> <span id="printDiagnosticoCID"></span></p>
+      <p><strong>Justificativa Clínica Detalhada:</strong> <span id="printJustificativaAPAC" style="white-space: pre-wrap;"></span></p>
+      <p><strong>Data da Solicitação:</strong> <span id="printDataSolicitacao"></span></p>
+    </div>
+
+    <div style="border: 1px solid #000; padding: 10px; margin-top: 20px;">
+      <h2 style="margin-top: 0; border-bottom: 1px solid #000;">Dados do Solicitante (Profissional)</h2>
+      <p><strong>Nome do Profissional:</strong> <span id="printProfissionalNome"></span></p>
+      <p><strong>CRM/Registro:</strong> <span id="printProfissionalCRM"></span></p>
+      <p><strong>UID do Profissional:</strong> <span id="printProfissionalUIDDisplay"></span></p>
+    </div>
+
+    <div style="margin-top: 50px; text-align: right;">
+      <p>Assinatura do Profissional / Carimbo: _________________________________________</p>
+    </div>
+
+    <div style="text-align: right; margin-top: 30px; font-size: 0.8em; color: #777;">
+      UID da Solicitação APAC: <span id="printApacUID"></span>
+    </div>
+  </div>
+
+  <script>
+    // Inicialização do Firebase (mesmas credenciais do cadastropaciente.html)
+    const firebaseConfig = {
+      apiKey: "AIzaSyB9GkSqTIZ0kbVsba_WOdQeVAETrF9qna0",
+      authDomain: "wzzm-ce3fc.firebaseapp.com",
+      projectId: "wzzm-ce3fc",
+      storageBucket: "wzzm-ce3fc.appspot.com",
+      messagingSenderId: "249427877153",
+      appId: "1:249427877153:web:0e4297294794a5aadeb260",
+      measurementId: "G-PLKNZNFCQ8"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const firestore = firebase.firestore();
+
+    let pacienteUID = null; // Variável para armazenar o UID do paciente
+    let profissionalUID = null; // Variável para armazenar o UID do profissional
+    const profissionalCRM = "CRM/SP 123456"; // Exemplo de CRM
+    const profissionalNome = "Dr. Exemplo da Silva"; // Exemplo de Nome do Médico
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      // Mock de login (para fins de demonstração, em um ambiente real, o usuário estaria logado)
+      try {
+        await auth.signInAnonymously(); // Autenticação anônima para demonstração
+        const user = auth.currentUser;
+        if (user) {
+          profissionalUID = user.uid;
+          document.getElementById('profissionalNome').value = profissionalNome;
+          document.getElementById('profissionalCRM').value = profissionalCRM;
+          document.getElementById('profissionalUIDDisplay').value = profissionalUID;
+
+          document.getElementById('printProfissionalNome').textContent = profissionalNome;
+          document.getElementById('printProfissionalCRM').textContent = profissionalCRM;
+          document.getElementById('printProfissionalUIDDisplay').textContent = profissionalUID;
+        }
+      } catch (error) {
+        console.error("Erro ao autenticar profissional:", error);
+      }
+
+      // Para fins de demonstração, vamos simular o carregamento de um paciente
+      // buscando o primeiro paciente cadastrado na sua coleção 'clientepaciente'.
+      try {
+        const pacientesSnapshot = await firestore.collection("clientepaciente").limit(1).get();
+        if (!pacientesSnapshot.empty) {
+          const pacienteDoc = pacientesSnapshot.docs[0];
+          const pacienteData = pacienteDoc.data();
+          pacienteUID = pacienteDoc.id; // UID do paciente
+
+          document.getElementById("pacienteNome").value = pacienteData.nome || '';
+          document.getElementById("pacienteCPF").value = pacienteData.cpf || '';
+          document.getElementById("pacienteDataNascimento").value = pacienteData.dataNascimento || '';
+          document.getElementById("pacienteSexo").value = pacienteData.sexo || '';
+          document.getElementById("pacienteTelefone").value = pacienteData.telefone || '';
+          document.getElementById("pacienteEmail").value = pacienteData.email || '';
+          document.getElementById("pacienteEndereco").value = pacienteData.endereco || '';
+        } else {
+          console.warn("Nenhum paciente encontrado para demonstração. Verifique a coleção 'clientepaciente'.");
+        }
+      } catch (error) {
+        console.error("Erro ao carregar dados do paciente:", error);
+      }
+    });
+
+    document.getElementById("salvarAPAC").addEventListener("click", async () => {
+      const mensagem = document.getElementById("mensagem");
+      const user = auth.currentUser;
+
+      if (!user) {
+        mensagem.textContent = "Você precisa estar logado para salvar a solicitação APAC.";
+        mensagem.className = "error";
+        return;
+      }
+
+      if (!pacienteUID) {
+        mensagem.textContent = "UID do paciente não encontrado. Não é possível salvar a solicitação.";
+        mensagem.className = "error";
+        return;
+      }
+
+      const solicitacaoAPAC = {
+        pacienteUID: pacienteUID,
+        profissionalUID: profissionalUID,
+        procedimentoAPAC: document.getElementById("procedimentoAPAC").value,
+        diagnosticoCID: document.getElementById("diagnosticoCID").value,
+        justificativaAPAC: document.getElementById("justificativaAPAC").value,
+        dataSolicitacao: document.getElementById("dataSolicitacao").value,
+        dataRegistro: new Date().toISOString(), // Data e hora do registro no sistema
+        profissionalNome: profissionalNome,
+        profissionalCRM: profissionalCRM
+      };
+
+      try {
+        const docRef = await firestore.collection("solicitacoesAPAC").add(solicitacaoAPAC);
+        const apacUID = docRef.id;
+
+        document.getElementById("apacUID").textContent = apacUID;
+        mensagem.textContent = "Solicitação APAC salva com sucesso!";
+        mensagem.className = "success";
+
+        // Preencher área de impressão
+        document.getElementById("printPacienteNome").textContent = document.getElementById("pacienteNome").value;
+        document.getElementById("printPacienteCPF").textContent = document.getElementById("pacienteCPF").value;
+        document.getElementById("printPacienteDataNascimento").textContent = document.getElementById("pacienteDataNascimento").value;
+        document.getElementById("printPacienteSexo").textContent = document.getElementById("pacienteSexo").value;
+        document.getElementById("printPacienteTelefone").textContent = document.getElementById("pacienteTelefone").value;
+        document.getElementById("printPacienteEmail").textContent = document.getElementById("pacienteEmail").value;
+        document.getElementById("printPacienteEndereco").textContent = document.getElementById("pacienteEndereco").value;
+
+        document.getElementById("printProcedimentoAPAC").textContent = document.getElementById("procedimentoAPAC").value;
+        document.getElementById("printDiagnosticoCID").textContent = document.getElementById("diagnosticoCID").value;
+        document.getElementById("printJustificativaAPAC").textContent = document.getElementById("justificativaAPAC").value;
+        document.getElementById("printDataSolicitacao").textContent = document.getElementById("dataSolicitacao").value;
+
+        document.getElementById("printProfissionalNome").textContent = profissionalNome;
+        document.getElementById("printProfissionalCRM").textContent = profissionalCRM;
+        document.getElementById("printProfissionalUIDDisplay").textContent = profissionalUID;
+        document.getElementById("printApacUID").textContent = apacUID;
+
+        // Ativar impressão
+        window.print();
+
+      } catch (error) {
+        console.error("Erro ao salvar solicitação APAC:", error);
+        mensagem.textContent = "Erro ao salvar solicitação APAC. Detalhes: " + error.message;
+        mensagem.className = "error";
+      }
+    });
+  </script>
+
+</body>
+</html>

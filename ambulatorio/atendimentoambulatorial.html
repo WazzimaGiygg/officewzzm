@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Atendimento Ambulatorial Comum</title>
+  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f4f4f4; }
+    .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    h1 { text-align: center; color: #333; margin-bottom: 30px; }
+    .section-box { border: 1px solid #ccc; padding: 15px; margin-bottom: 20px; }
+    label { display: block; margin-top: 10px; font-weight: bold; }
+    input[type="text"], input[type="date"], input[type="email"], textarea { width: calc(100% - 16px); padding: 8px; margin-top: 4px; border: 1px solid #ddd; }
+    textarea { resize: vertical; }
+    .signature-line { border-bottom: 1px solid #000; margin-top: 50px; padding-bottom: 5px; text-align: center; }
+    .signature-label { margin-top: 5px; font-size: 0.9em; color: #555; }
+    .cid-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; }
+    .footer { text-align: right; margin-top: 30px; font-size: 0.8em; color: #777; }
+    button { margin-top: 20px; padding: 10px 20px; background: #3f51b5; color: white; border: none; cursor: pointer; }
+    button:hover { background: #303f9f; }
+    .success, .error { margin-top: 15px; font-weight: bold; }
+    .success { color: green; }
+    .error { color: red; }
+    .print-area { display: none; } /* Hidden by default for printing */
+
+    @media print {
+      body * { visibility: hidden; }
+      .print-area, .print-area * { visibility: visible; }
+      .print-area { position: absolute; left: 0; top: 0; width: 100%; }
+      button, .success, .error { display: none; } /* Hide buttons and messages when printing */
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>ATENDIMENTO AMBULATORIAL COMUM</h1>
+
+    <div class="section-box">
+      <h2>Dados do Paciente</h2>
+      <label>Nome completo: <input type="text" id="pacienteNome" readonly></label>
+      <label>CPF: <input type="text" id="pacienteCPF" readonly></label>
+      <label>Data de Nascimento: <input type="date" id="pacienteDataNascimento" readonly></label>
+      <label>Telefone: <input type="text" id="pacienteTelefone" readonly></label>
+      <label>Email: <input type="email" id="pacienteEmail" readonly></label>
+      <label>Endereço: <textarea id="pacienteEndereco" rows="2" readonly></textarea></label>
+    </div>
+
+    <div class="signature-line"></div>
+    <div class="signature-label">Assinatura do Paciente</div>
+
+    <div class="section-box">
+      <h2>Diagnóstico</h2>
+      <label>CID-10 (1): <input type="text" id="cid1"></label>
+      <label>CID-10 (2): <input type="text" id="cid2"></label>
+      <label>CID-10 (3): <input type="text" id="cid3"></label>
+      <label>CID-10 (4): <input type="text" id="cid4"></label>
+      <label>Descrição do Diagnóstico:
+        <textarea id="descricaoDiagnostico" rows="4"></textarea>
+      </label>
+    </div>
+
+    <div class="section-box">
+      <h2>Exames Solicitados (Não Laboratoriais)</h2>
+      <label>Exames:
+        <textarea id="examesNaoLaboratoriais" rows="3"></textarea>
+      </label>
+      <label>Justificativa dos Exames:
+        <textarea id="justificativaExames" rows="3"></textarea>
+      </label>
+    </div>
+
+    <div class="section-box">
+      <h2>Exames Laboratoriais</h2>
+      <label>Exames Laboratoriais:
+        <textarea id="examesLaboratoriais" rows="3"></textarea>
+      </label>
+    </div>
+
+    <div class="signature-line" style="margin-top: 70px;"></div>
+    <div class="signature-label">CRM: <span id="medicoCRM"></span> &nbsp;&nbsp;&nbsp; Nome do Profissional: <span id="medicoNome"></span></div>
+
+    <button type="button" id="salvarAtendimento">Salvar Atendimento e Imprimir</button>
+    <div id="mensagem" class=""></div>
+
+    <div class="footer">
+      UID da Consulta: <span id="consultaUID">Gerado Automaticamente</span>
+    </div>
+  </div>
+
+  <div class="print-area" id="printContent">
+    <div style="text-align: center; margin-bottom: 20px;">
+      <h1>ATENDIMENTO AMBULATORIAL COMUM</h1>
+    </div>
+
+    <div style="border: 1px solid #000; padding: 10px; margin-bottom: 10px;">
+      <p><strong>Nome completo:</strong> <span id="printPacienteNome"></span></p>
+      <p><strong>CPF:</strong> <span id="printPacienteCPF"></span></p>
+      <p><strong>Data de Nascimento:</strong> <span id="printPacienteDataNascimento"></span></p>
+      <p><strong>Telefone:</strong> <span id="printPacienteTelefone"></span></p>
+      <p><strong>Email:</strong> <span id="printPacienteEmail"></span></p>
+      <p><strong>Endereço:</strong> <span id="printPacienteEndereco"></span></p>
+    </div>
+
+    <div style="margin-top: 30px; text-align: center;">Assinatura do Paciente: _________________________________________</div>
+
+    <div style="border: 1px solid #000; padding: 10px; margin-top: 20px;">
+      <h3>Diagnóstico</h3>
+      <p><strong>CID-10 (1):</strong> <span id="printCid1"></span></p>
+      <p><strong>CID-10 (2):</strong> <span id="printCid2"></span></p>
+      <p><strong>CID-10 (3):</strong> <span id="printCid3"></span></p>
+      <p><strong>CID-10 (4):</strong> <span id="printCid4"></span></p>
+      <p><strong>Descrição do Diagnóstico:</strong> <span id="printDescricaoDiagnostico"></span></p>
+    </div>
+
+    <div style="border: 1px solid #000; padding: 10px; margin-top: 20px;">
+      <h3>Exames Solicitados (Não Laboratoriais)</h3>
+      <p><strong>Exames:</strong> <span id="printExamesNaoLaboratoriais"></span></p>
+      <p><strong>Justificativa:</strong> <span id="printJustificativaExames"></span></p>
+    </div>
+
+    <div style="border: 1px solid #000; padding: 10px; margin-top: 20px;">
+      <h3>Exames Laboratoriais</h3>
+      <p><strong>Exames:</strong> <span id="printExamesLaboratoriais"></span></p>
+    </div>
+
+    <div style="margin-top: 50px; text-align: right;">
+      <p>CRM: <span id="printMedicoCRM"></span></p>
+      <p>Nome do Profissional: <span id="printMedicoNome"></span></p>
+      <p>Assinatura do Profissional: _________________________________________</p>
+    </div>
+
+    <div style="text-align: right; margin-top: 30px; font-size: 0.8em; color: #777;">
+      UID da Consulta: <span id="printConsultaUID"></span>
+    </div>
+  </div>
+
+  <script>
+    // Inicialização do Firebase (mesmas credenciais do cadastropaciente.html)
+    const firebaseConfig = {
+      apiKey: "AIzaSyB9GkSqTIZ0kbVsba_WOdQeVAETrF9qna0",
+      authDomain: "wzzm-ce3fc.firebaseapp.com",
+      projectId: "wzzm-ce3fc",
+      storageBucket: "wzzm-ce3fc.appspot.com",
+      messagingSenderId: "249427877153",
+      appId: "1:249427877153:web:0e4297294794a5aadeb260",
+      measurementId: "G-PLKNZNFCQ8"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const firestore = firebase.firestore();
+
+    let pacienteUID = null; // Variável para armazenar o UID do paciente
+    let profissionalUID = null; // Variável para armazenar o UID do profissional
+    let profissionalCRM = "CRM/SP 123456"; // Exemplo de CRM
+    let profissionalNome = "Dr. Exemplo da Silva"; // Exemplo de Nome do Médico
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      // Mock de login (para fins de demonstração, em um ambiente real, o usuário estaria logado)
+      // Substitua isso pelo seu fluxo de autenticação real.
+      try {
+        await auth.signInAnonymously(); // Autenticação anônima para demonstração
+        const user = auth.currentUser;
+        if (user) {
+          profissionalUID = user.uid;
+          document.getElementById('medicoCRM').textContent = profissionalCRM;
+          document.getElementById('medicoNome').textContent = profissionalNome;
+        }
+      } catch (error) {
+        console.error("Erro ao autenticar profissional:", error);
+      }
+
+      // **Para fins de demonstração, vamos simular o carregamento de um paciente.**
+      // Em um cenário real, você buscaria o UID do paciente de alguma forma
+      // (e.g., parâmetro de URL, seleção em uma lista, etc.).
+      // Aqui, buscaremos o primeiro paciente cadastrado no seu 'clientepaciente'
+      // para preencher os dados automaticamente.
+      try {
+        const pacientesSnapshot = await firestore.collection("clientepaciente").limit(1).get();
+        if (!pacientesSnapshot.empty) {
+          const pacienteDoc = pacientesSnapshot.docs[0];
+          const pacienteData = pacienteDoc.data();
+          pacienteUID = pacienteDoc.id; // UID do paciente
+
+          document.getElementById("pacienteNome").value = pacienteData.nome || '';
+          document.getElementById("pacienteCPF").value = pacienteData.cpf || '';
+          document.getElementById("pacienteDataNascimento").value = pacienteData.dataNascimento || '';
+          document.getElementById("pacienteTelefone").value = pacienteData.telefone || '';
+          document.getElementById("pacienteEmail").value = pacienteData.email || '';
+          document.getElementById("pacienteEndereco").value = pacienteData.endereco || '';
+        } else {
+          console.warn("Nenhum paciente encontrado para demonstração. Preencha os dados manualmente ou cadastre um paciente.");
+        }
+      } catch (error) {
+        console.error("Erro ao carregar dados do paciente:", error);
+      }
+    });
+
+    document.getElementById("salvarAtendimento").addEventListener("click", async () => {
+      const mensagem = document.getElementById("mensagem");
+      const user = auth.currentUser;
+
+      if (!user) {
+        mensagem.textContent = "Você precisa estar logado para registrar o atendimento.";
+        mensagem.className = "error";
+        return;
+      }
+
+      if (!pacienteUID) {
+        mensagem.textContent = "UID do paciente não encontrado. Não é possível salvar o atendimento.";
+        mensagem.className = "error";
+        return;
+      }
+
+      const atendimento = {
+        pacienteUID: pacienteUID, // UID do paciente
+        profissionalUID: profissionalUID, // UID do médico (gerado pelo Google/Firebase Auth)
+        dataAtendimento: new Date().toISOString(),
+        cids: [
+          document.getElementById("cid1").value,
+          document.getElementById("cid2").value,
+          document.getElementById("cid3").value,
+          document.getElementById("cid4").value
+        ].filter(cid => cid), // Filtra CIDs vazios
+        descricaoDiagnostico: document.getElementById("descricaoDiagnostico").value,
+        examesNaoLaboratoriais: document.getElementById("examesNaoLaboratoriais").value,
+        justificativaExames: document.getElementById("justificativaExames").value,
+        examesLaboratoriais: document.getElementById("examesLaboratoriais").value,
+        profissionalCRM: profissionalCRM,
+        profissionalNome: profissionalNome
+      };
+
+      try {
+        const docRef = await firestore.collection("atendimentos").add(atendimento);
+        const consultaUID = docRef.id; // UID da consulta gerado pelo Firebase
+
+        document.getElementById("consultaUID").textContent = consultaUID;
+        mensagem.textContent = "Atendimento salvo com sucesso!";
+        mensagem.className = "success";
+
+        // Preencher área de impressão
+        document.getElementById("printPacienteNome").textContent = document.getElementById("pacienteNome").value;
+        document.getElementById("printPacienteCPF").textContent = document.getElementById("pacienteCPF").value;
+        document.getElementById("printPacienteDataNascimento").textContent = document.getElementById("pacienteDataNascimento").value;
+        document.getElementById("printPacienteTelefone").textContent = document.getElementById("pacienteTelefone").value;
+        document.getElementById("printPacienteEmail").textContent = document.getElementById("pacienteEmail").value;
+        document.getElementById("printPacienteEndereco").textContent = document.getElementById("pacienteEndereco").value;
+        document.getElementById("printCid1").textContent = document.getElementById("cid1").value;
+        document.getElementById("printCid2").textContent = document.getElementById("cid2").value;
+        document.getElementById("printCid3").textContent = document.getElementById("cid3").value;
+        document.getElementById("printCid4").textContent = document.getElementById("cid4").value;
+        document.getElementById("printDescricaoDiagnostico").textContent = document.getElementById("descricaoDiagnostico").value;
+        document.getElementById("printExamesNaoLaboratoriais").textContent = document.getElementById("examesNaoLaboratoriais").value;
+        document.getElementById("printJustificativaExames").textContent = document.getElementById("justificativaExames").value;
+        document.getElementById("printExamesLaboratoriais").textContent = document.getElementById("examesLaboratoriais").value;
+        document.getElementById("printMedicoCRM").textContent = profissionalCRM;
+        document.getElementById("printMedicoNome").textContent = profissionalNome;
+        document.getElementById("printConsultaUID").textContent = consultaUID;
+
+        // Ativar impressão
+        window.print();
+
+        // Opcional: Limpar formulário após salvar e imprimir
+        // document.getElementById("form-atendimento").reset();
+      } catch (error) {
+        console.error("Erro ao salvar atendimento:", error);
+        mensagem.textContent = "Erro ao salvar atendimento.";
+        mensagem.className = "error";
+      }
+    });
+  </script>
+
+</body>
+</html>
