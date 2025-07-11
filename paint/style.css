@@ -1,0 +1,62 @@
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: #f0f0f0;
+    margin: 0;
+}
+
+.container {
+    background-color: #ffffff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+h1 {
+    color: #333;
+    margin-bottom: 20px;
+}
+
+.toolbar {
+    margin-bottom: 15px;
+    display: flex;
+    justify-content: center;
+    gap: 10px; /* Espaço entre os botões */
+    flex-wrap: wrap; /* Permite que os itens quebrem linha se não houver espaço */
+}
+
+.toolbar input[type="color"] {
+    border: none;
+    padding: 0;
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.toolbar button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s ease;
+}
+
+.toolbar button:hover {
+    background-color: #0056b3;
+}
+
+canvas {
+    border: 1px solid #ccc;
+    background-color: #fff;
+    cursor: crosshair; /* Cursor de cruz para indicar área de desenho */
+    display: block; /* Remove espaço extra abaixo do canvas */
+    margin: 0 auto; /* Centraliza o canvas */
+}
