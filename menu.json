@@ -1,0 +1,7 @@
+[
+    {
+        "label": "Editor de Texto",
+        "href": "./ferramentas/editordetexto.html",
+        "requiresAuth": false
+    }
+]
