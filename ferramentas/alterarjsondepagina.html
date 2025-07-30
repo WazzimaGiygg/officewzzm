@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Editar Configurações da Wiki</title>
+    <title>Editar Configurações da Wiki (Firebase Conectado)</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -42,7 +42,7 @@
             font-size: 16px;
         }
         input[type="color"] {
-            height: 40px; /* Adjust height for color input */
+            height: 40px;
             width: 80px;
             vertical-align: middle;
             margin-left: 10px;
@@ -57,6 +57,7 @@
             cursor: pointer;
             font-size: 17px;
             width: 100%;
+            margin-top: 10px;
             transition: background-color 0.3s ease;
         }
         button:hover {
@@ -89,6 +90,15 @@
         .copy-button:hover {
             background-color: #218838;
         }
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .action-buttons button {
+            flex: 1;
+            width: auto;
+        }
     </style>
 </head>
 <body>
@@ -117,22 +127,41 @@
                 <input type="color" id="corSiteColor" name="corSiteColor" style="display: inline-block;">
             </div>
 
-            <button type="submit">Gerar JSON Atualizado</button>
+            <div class="action-buttons">
+                <button type="button" id="loadFromFirebaseButton">Carregar do Firebase</button>
+                <button type="submit">Gerar & Salvar no Firebase</button>
+            </div>
         </form>
 
         <div id="output">
-            </div>
+            Aguardando dados...
+        </div>
         <button class="copy-button" id="copyButton" style="display: none;">Copiar JSON</button>
     </div>
 
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+
     <script>
-        // Nosso JSON inicial
-        const initialJson = {
-            "nomeCompletoWiki": "Wiki Zone Zero Mod",
-            "nomePaginaDrawer": "Wiki Zone Zero Mod",
-            "linkProcurarArtigos": "Procurar",
-            "corSite": "#00FFFF"
+        // --- Configuração do Firebase ---
+        // As credenciais que você forneceu estão agora aqui
+        const firebaseConfig = {
+            apiKey: "AIzaSyB9GkSqTIZ0kbVsba_WOdQeVAETrF9qna0",
+            authDomain: "wzzm-ce3fc.firebaseapp.com",
+            projectId: "wzzm-ce3fc",
+            storageBucket: "wzzm-ce3fc.appspot.com",
+            messagingSenderId: "249427877153",
+            appId: "1:249427877153:web:0e4297294794a5aadeb260",
+            measurementId: "G-PLKNZNFCQ8" // Opcional
         };
+
+        // Inicialize o Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore(); // Obtenha uma referência ao Firestore
+
+        // Referência à coleção e documento onde seus dados serão armazenados
+        // Você pode mudar 'configuracoes' e 'wikiConfig' se desejar
+        const configDocRef = db.collection('configuracoes').doc('wikiConfig');
 
         const form = document.getElementById('jsonForm');
         const nomeCompletoWikiInput = document.getElementById('nomeCompletoWiki');
@@ -142,48 +171,98 @@
         const corSiteColorInput = document.getElementById('corSiteColor');
         const outputDiv = document.getElementById('output');
         const copyButton = document.getElementById('copyButton');
+        const loadFromFirebaseButton = document.getElementById('loadFromFirebaseButton');
 
-        // Função para preencher o formulário com os dados do JSON inicial
-        function fillForm() {
-            nomeCompletoWikiInput.value = initialJson.nomeCompletoWiki;
-            nomePaginaDrawerInput.value = initialJson.nomePaginaDrawer;
-            linkProcurarArtigosInput.value = initialJson.linkProcurarArtigos;
-            corSiteTextInput.value = initialJson.corSite;
-            corSiteColorInput.value = initialJson.corSite; // Sincroniza o input de cor
+        // Função para preencher o formulário com os dados
+        function fillForm(data) {
+            if (data) {
+                nomeCompletoWikiInput.value = data.nomeCompletoWiki || '';
+                nomePaginaDrawerInput.value = data.nomePaginaDrawer || '';
+                linkProcurarArtigosInput.value = data.linkProcurarArtigos || '';
+                corSiteTextInput.value = data.corSite || '#000000'; // Valor padrão para cor
+                corSiteColorInput.value = data.corSite || '#000000'; // Valor padrão para cor
+            } else {
+                // Limpa o formulário se não houver dados
+                nomeCompletoWikiInput.value = '';
+                nomePaginaDrawerInput.value = '';
+                linkProcurarArtigosInput.value = '';
+                corSiteTextInput.value = '#000000';
+                corSiteColorInput.value = '#000000';
+            }
         }
 
-        // Atualiza o input de texto de cor quando a cor é alterada pelo seletor de cor
+        // --- Funções de interação com Firebase ---
+
+        // Função para carregar dados do Firebase
+        async function loadConfigFromFirebase() {
+            outputDiv.textContent = 'Carregando dados do Firebase...';
+            try {
+                const doc = await configDocRef.get();
+                if (doc.exists) {
+                    const data = doc.data();
+                    fillForm(data);
+                    const jsonString = JSON.stringify(data, null, 4);
+                    outputDiv.textContent = jsonString;
+                    copyButton.style.display = 'block';
+                    alert('Configurações carregadas do Firebase com sucesso!');
+                } else {
+                    console.log("Nenhum documento encontrado no Firebase para 'wikiConfig'. Preenchendo com valores vazios.");
+                    outputDiv.textContent = 'Nenhum dado encontrado no Firebase para wikiConfig. Preenchendo com valores vazios.';
+                    fillForm({}); // Preenche com valores vazios para o usuário começar a editar
+                    copyButton.style.display = 'none';
+                }
+            } catch (error) {
+                console.error("Erro ao carregar do Firebase: ", error);
+                outputDiv.textContent = `Erro ao carregar dados: ${error.message}. Verifique as regras do Firestore e sua conexão.`;
+                alert('Erro ao carregar configurações do Firebase. Verifique o console para mais detalhes.');
+            }
+        }
+
+        // Função para salvar dados no Firebase
+        async function saveConfigToFirebase(data) {
+            outputDiv.textContent = 'Salvando dados no Firebase...';
+            try {
+                // Usamos .set() que irá criar o documento se não existir ou sobrescrever se existir
+                await configDocRef.set(data);
+                const jsonString = JSON.stringify(data, null, 4);
+                outputDiv.textContent = jsonString;
+                copyButton.style.display = 'block';
+                alert('Configurações salvas no Firebase com sucesso!');
+            } catch (error) {
+                console.error("Erro ao salvar no Firebase: ", error);
+                outputDiv.textContent = `Erro ao salvar dados: ${error.message}. Verifique as regras do Firestore e sua conexão.`;
+                alert('Erro ao salvar configurações no Firebase. Verifique o console para mais detalhes.');
+            }
+        }
+
+        // --- Event Listeners e Inicialização ---
+
+        // Sincroniza o input de texto de cor com o seletor de cor
         corSiteColorInput.addEventListener('input', (event) => {
             corSiteTextInput.value = event.target.value;
         });
 
-        // Atualiza o seletor de cor quando o texto da cor é alterado
+        // Sincroniza o seletor de cor com o input de texto de cor
         corSiteTextInput.addEventListener('input', (event) => {
-            // Valida se o valor é um hexadecimal válido antes de atribuir
-            if (/^#([0-9A-F]{3}){1,2}$/i.test(event.target.value)) {
+            if (/^#([0-9A-F]{3}){1,2}$/i.test(event.target.value)) { // Valida formato hex
                 corSiteColorInput.value = event.target.value;
             }
         });
 
-        // Evento de submit do formulário
-        form.addEventListener('submit', function(event) {
+        // Evento de submit do formulário: agora gera e salva no Firebase
+        form.addEventListener('submit', async function(event) {
             event.preventDefault(); // Impede o envio padrão do formulário
-
-            // Cria um novo objeto com os valores do formulário
             const updatedJson = {
                 "nomeCompletoWiki": nomeCompletoWikiInput.value,
                 "nomePaginaDrawer": nomePaginaDrawerInput.value,
                 "linkProcurarArtigos": linkProcurarArtigosInput.value,
                 "corSite": corSiteTextInput.value
             };
-
-            // Converte o objeto para uma string JSON formatada
-            const jsonString = JSON.stringify(updatedJson, null, 4); // null, 4 para indentação bonita
-
-            // Exibe o JSON atualizado na tela
-            outputDiv.textContent = jsonString;
-            copyButton.style.display = 'block'; // Mostra o botão de copiar
+            await saveConfigToFirebase(updatedJson);
         });
+
+        // Evento para o botão "Carregar do Firebase"
+        loadFromFirebaseButton.addEventListener('click', loadConfigFromFirebase);
 
         // Evento para copiar o JSON
         copyButton.addEventListener('click', () => {
@@ -196,8 +275,8 @@
             });
         });
 
-        // Preenche o formulário quando a página carrega
-        fillForm();
+        // Carrega as configurações do Firebase ao iniciar a página
+        loadConfigFromFirebase();
     </script>
 </body>
 </html>
