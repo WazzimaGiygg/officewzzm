@@ -3,13 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Editar Configurações da Wiki (Firebase Conectado)</title>
+    <title>Editor de Configurações da Wiki (Admin)</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             margin: 20px;
             background-color: #f4f4f4;
             color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
         .container {
             background-color: #fff;
@@ -17,7 +20,8 @@
             border-radius: 8px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             max-width: 500px;
-            margin: 30px auto;
+            width: 100%;
+            margin-bottom: 20px;
         }
         h1 {
             text-align: center;
@@ -34,6 +38,8 @@
             color: #555;
         }
         input[type="text"],
+        input[type="email"],
+        input[type="password"],
         input[type="color"] {
             width: calc(100% - 20px);
             padding: 10px;
@@ -99,52 +105,91 @@
             flex: 1;
             width: auto;
         }
+        #auth-section {
+            background-color: #e0e0e0;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        #editor-section {
+            display: none; /* Escondido por padrão, só aparece após login */
+        }
+        #user-info {
+            margin-bottom: 15px;
+            font-size: 1.1em;
+            color: #0056b3;
+        }
+        .error-message {
+            color: red;
+            margin-top: 10px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Editar Configurações da Wiki</h1>
+        <h1>Editor de Configurações da Wiki</h1>
 
-        <form id="jsonForm">
+        <div id="auth-section">
+            <h2>Login de Administrador</h2>
             <div class="form-group">
-                <label for="nomeCompletoWiki">Nome Completo da Wiki:</label>
-                <input type="text" id="nomeCompletoWiki" name="nomeCompletoWiki">
+                <label for="email">E-mail:</label>
+                <input type="email" id="email" placeholder="admin@exemplo.com">
             </div>
-
             <div class="form-group">
-                <label for="nomePaginaDrawer">Nome da Página no Drawer:</label>
-                <input type="text" id="nomePaginaDrawer" name="nomePaginaDrawer">
+                <label for="password">Senha:</label>
+                <input type="password" id="password" placeholder="••••••••">
             </div>
-
-            <div class="form-group">
-                <label for="linkProcurarArtigos">Link para Procurar Artigos:</label>
-                <input type="text" id="linkProcurarArtigos" name="linkProcurarArtigos">
-            </div>
-
-            <div class="form-group">
-                <label for="corSite">Cor do Site:</label>
-                <input type="text" id="corSiteText" name="corSiteText" style="width: calc(100% - 100px); display: inline-block;">
-                <input type="color" id="corSiteColor" name="corSiteColor" style="display: inline-block;">
-            </div>
-
-            <div class="action-buttons">
-                <button type="button" id="loadFromFirebaseButton">Carregar do Firebase</button>
-                <button type="submit">Gerar & Salvar no Firebase</button>
-            </div>
-        </form>
-
-        <div id="output">
-            Aguardando dados...
+            <button id="loginButton">Entrar</button>
+            <p id="authError" class="error-message"></p>
         </div>
-        <button class="copy-button" id="copyButton" style="display: none;">Copiar JSON</button>
+
+        <div id="editor-section">
+            <p id="user-info">Bem-vindo, <span id="currentUserEmail"></span>!</p>
+            <button id="logoutButton" style="background-color: #dc3545;">Sair</button>
+
+            <form id="jsonForm">
+                <div class="form-group">
+                    <label for="nomeCompletoWiki">Nome Completo da Wiki:</label>
+                    <input type="text" id="nomeCompletoWiki" name="nomeCompletoWiki">
+                </div>
+
+                <div class="form-group">
+                    <label for="nomePaginaDrawer">Nome da Página no Drawer:</label>
+                    <input type="text" id="nomePaginaDrawer" name="nomePaginaDrawer">
+                </div>
+
+                <div class="form-group">
+                    <label for="linkProcurarArtigos">Link para Procurar Artigos:</label>
+                    <input type="text" id="linkProcurarArtigos" name="linkProcurarArtigos">
+                </div>
+
+                <div class="form-group">
+                    <label for="corSite">Cor do Site:</label>
+                    <input type="text" id="corSiteText" name="corSiteText" style="width: calc(100% - 100px); display: inline-block;">
+                    <input type="color" id="corSiteColor" name="corSiteColor" style="display: inline-block;">
+                </div>
+
+                <div class="action-buttons">
+                    <button type="button" id="loadFromFirebaseButton">Carregar do Firebase</button>
+                    <button type="submit">Gerar & Salvar no Firebase</button>
+                </div>
+            </form>
+
+            <div id="output">
+                Aguardando dados...
+            </div>
+            <button class="copy-button" id="copyButton" style="display: none;">Copiar JSON</button>
+        </div>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
 
     <script>
         // --- Configuração do Firebase ---
-        // As credenciais que você forneceu estão agora aqui
         const firebaseConfig = {
             apiKey: "AIzaSyB9GkSqTIZ0kbVsba_WOdQeVAETrF9qna0",
             authDomain: "wzzm-ce3fc.firebaseapp.com",
@@ -152,16 +197,25 @@
             storageBucket: "wzzm-ce3fc.appspot.com",
             messagingSenderId: "249427877153",
             appId: "1:249427877153:web:0e4297294794a5aadeb260",
-            measurementId: "G-PLKNZNFCQ8" // Opcional
+            measurementId: "G-PLKNZNFCQ8" // Opcional, para Analytics
         };
 
         // Inicialize o Firebase
         firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore(); // Obtenha uma referência ao Firestore
+        const auth = firebase.auth();
+        const db = firebase.firestore();
 
-        // Referência à coleção e documento onde seus dados serão armazenados
-        // Você pode mudar 'configuracoes' e 'wikiConfig' se desejar
         const configDocRef = db.collection('configuracoes').doc('wikiConfig');
+
+        // Referências aos elementos HTML
+        const authSection = document.getElementById('auth-section');
+        const editorSection = document.getElementById('editor-section');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const loginButton = document.getElementById('loginButton');
+        const logoutButton = document.getElementById('logoutButton');
+        const authError = document.getElementById('authError');
+        const currentUserEmailSpan = document.getElementById('currentUserEmail');
 
         const form = document.getElementById('jsonForm');
         const nomeCompletoWikiInput = document.getElementById('nomeCompletoWiki');
@@ -179,10 +233,9 @@
                 nomeCompletoWikiInput.value = data.nomeCompletoWiki || '';
                 nomePaginaDrawerInput.value = data.nomePaginaDrawer || '';
                 linkProcurarArtigosInput.value = data.linkProcurarArtigos || '';
-                corSiteTextInput.value = data.corSite || '#000000'; // Valor padrão para cor
-                corSiteColorInput.value = data.corSite || '#000000'; // Valor padrão para cor
+                corSiteTextInput.value = data.corSite || '#000000';
+                corSiteColorInput.value = data.corSite || '#000000';
             } else {
-                // Limpa o formulário se não houver dados
                 nomeCompletoWikiInput.value = '';
                 nomePaginaDrawerInput.value = '';
                 linkProcurarArtigosInput.value = '';
@@ -191,9 +244,65 @@
             }
         }
 
-        // --- Funções de interação com Firebase ---
+        // --- Funções de Autenticação ---
 
-        // Função para carregar dados do Firebase
+        // Função para fazer login
+        loginButton.addEventListener('click', async () => {
+            const email = emailInput.value;
+            const password = passwordInput.value;
+            authError.textContent = ''; // Limpa mensagens de erro anteriores
+
+            if (!email || !password) {
+                authError.textContent = 'Por favor, insira e-mail e senha.';
+                return;
+            }
+
+            try {
+                await auth.signInWithEmailAndPassword(email, password);
+                // O observador onAuthStateChanged (abaixo) lidará com a atualização da UI
+            } catch (error) {
+                console.error("Erro de Login: ", error);
+                let errorMessage = 'Erro ao fazer login.';
+                if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+                    errorMessage = 'E-mail ou senha inválidos.';
+                } else if (error.code === 'auth/invalid-email') {
+                    errorMessage = 'Formato de e-mail inválido.';
+                }
+                authError.textContent = errorMessage;
+            }
+        });
+
+        // Função para fazer logout
+        logoutButton.addEventListener('click', async () => {
+            try {
+                await auth.signOut();
+                // O observador onAuthStateChanged lidará com a atualização da UI
+            } catch (error) {
+                console.error("Erro de Logout: ", error);
+                alert('Erro ao fazer logout.');
+            }
+        });
+
+        // Observador do estado de autenticação
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                // Usuário logado
+                authSection.style.display = 'none';
+                editorSection.style.display = 'block';
+                currentUserEmailSpan.textContent = user.email;
+                loadConfigFromFirebase(); // Carrega os dados após o login
+            } else {
+                // Usuário deslogado
+                authSection.style.display = 'block';
+                editorSection.style.display = 'none';
+                fillForm({}); // Limpa o formulário
+                outputDiv.textContent = 'Faça login para editar as configurações.';
+                copyButton.style.display = 'none';
+            }
+        });
+
+        // --- Funções de interação com Firebase Firestore ---
+
         async function loadConfigFromFirebase() {
             outputDiv.textContent = 'Carregando dados do Firebase...';
             try {
@@ -204,25 +313,28 @@
                     const jsonString = JSON.stringify(data, null, 4);
                     outputDiv.textContent = jsonString;
                     copyButton.style.display = 'block';
-                    alert('Configurações carregadas do Firebase com sucesso!');
+                    // alert('Configurações carregadas do Firebase com sucesso!'); // Removido para não ser intrusivo
                 } else {
                     console.log("Nenhum documento encontrado no Firebase para 'wikiConfig'. Preenchendo com valores vazios.");
                     outputDiv.textContent = 'Nenhum dado encontrado no Firebase para wikiConfig. Preenchendo com valores vazios.';
-                    fillForm({}); // Preenche com valores vazios para o usuário começar a editar
+                    fillForm({});
                     copyButton.style.display = 'none';
                 }
             } catch (error) {
                 console.error("Erro ao carregar do Firebase: ", error);
-                outputDiv.textContent = `Erro ao carregar dados: ${error.message}. Verifique as regras do Firestore e sua conexão.`;
-                alert('Erro ao carregar configurações do Firebase. Verifique o console para mais detalhes.');
+                if (error.code === 'permission-denied' || error.code === 'missing-or-insufficient-permissions') {
+                    outputDiv.textContent = 'Permissão negada. Você pode não ter acesso para ler esses dados.';
+                    alert('Permissão negada. Verifique suas regras do Firestore ou se você está logado com a conta correta.');
+                } else {
+                    outputDiv.textContent = `Erro ao carregar dados: ${error.message}.`;
+                    alert('Erro ao carregar configurações do Firebase. Verifique o console.');
+                }
             }
         }
 
-        // Função para salvar dados no Firebase
         async function saveConfigToFirebase(data) {
             outputDiv.textContent = 'Salvando dados no Firebase...';
             try {
-                // Usamos .set() que irá criar o documento se não existir ou sobrescrever se existir
                 await configDocRef.set(data);
                 const jsonString = JSON.stringify(data, null, 4);
                 outputDiv.textContent = jsonString;
@@ -230,28 +342,30 @@
                 alert('Configurações salvas no Firebase com sucesso!');
             } catch (error) {
                 console.error("Erro ao salvar no Firebase: ", error);
-                outputDiv.textContent = `Erro ao salvar dados: ${error.message}. Verifique as regras do Firestore e sua conexão.`;
-                alert('Erro ao salvar configurações no Firebase. Verifique o console para mais detalhes.');
+                 if (error.code === 'permission-denied' || error.code === 'missing-or-insufficient-permissions') {
+                    outputDiv.textContent = 'Permissão negada. Você não tem acesso para salvar esses dados.';
+                    alert('Permissão negada. Verifique suas regras do Firestore ou se você está logado com a conta correta.');
+                } else {
+                    outputDiv.textContent = `Erro ao salvar dados: ${error.message}.`;
+                    alert('Erro ao salvar configurações no Firebase. Verifique o console.');
+                }
             }
         }
 
-        // --- Event Listeners e Inicialização ---
+        // --- Event Listeners e Sincronização de Cores ---
 
-        // Sincroniza o input de texto de cor com o seletor de cor
         corSiteColorInput.addEventListener('input', (event) => {
             corSiteTextInput.value = event.target.value;
         });
 
-        // Sincroniza o seletor de cor com o input de texto de cor
         corSiteTextInput.addEventListener('input', (event) => {
-            if (/^#([0-9A-F]{3}){1,2}$/i.test(event.target.value)) { // Valida formato hex
+            if (/^#([0-9A-F]{3}){1,2}$/i.test(event.target.value)) {
                 corSiteColorInput.value = event.target.value;
             }
         });
 
-        // Evento de submit do formulário: agora gera e salva no Firebase
         form.addEventListener('submit', async function(event) {
-            event.preventDefault(); // Impede o envio padrão do formulário
+            event.preventDefault();
             const updatedJson = {
                 "nomeCompletoWiki": nomeCompletoWikiInput.value,
                 "nomePaginaDrawer": nomePaginaDrawerInput.value,
@@ -261,10 +375,8 @@
             await saveConfigToFirebase(updatedJson);
         });
 
-        // Evento para o botão "Carregar do Firebase"
         loadFromFirebaseButton.addEventListener('click', loadConfigFromFirebase);
 
-        // Evento para copiar o JSON
         copyButton.addEventListener('click', () => {
             const textToCopy = outputDiv.textContent;
             navigator.clipboard.writeText(textToCopy).then(() => {
@@ -275,8 +387,8 @@
             });
         });
 
-        // Carrega as configurações do Firebase ao iniciar a página
-        loadConfigFromFirebase();
+        // Não chamamos loadConfigFromFirebase() diretamente aqui.
+        // Ele será chamado por onAuthStateChanged assim que o usuário estiver logado.
     </script>
 </body>
 </html>
