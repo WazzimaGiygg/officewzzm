@@ -19,7 +19,7 @@
             padding: 25px;
             border-radius: 8px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            max-width: 500px;
+            max-width: 600px; /* Aumentado para acomodar novos campos */
             width: 100%;
             margin-bottom: 20px;
         }
@@ -40,7 +40,8 @@
         input[type="text"],
         input[type="email"],
         input[type="password"],
-        input[type="color"] {
+        input[type="color"],
+        select { /* Adicionado estilo para select se for usado um dropdown para IDs */
             width: calc(100% - 20px);
             padding: 10px;
             border: 1px solid #ddd;
@@ -125,6 +126,22 @@
             margin-top: 10px;
             text-align: center;
         }
+        .doc-management-section {
+            background-color: #f0f0f0;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .doc-management-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .doc-management-buttons button {
+            flex: 1;
+            width: auto;
+            margin-top: 0;
+        }
     </style>
 </head>
 <body>
@@ -149,6 +166,19 @@
             <p id="user-info">Bem-vindo, <span id="currentUserEmail"></span>!</p>
             <button id="logoutButton" style="background-color: #dc3545;">Sair</button>
 
+            <div class="doc-management-section">
+                <h2>Gerenciar Documentos de Configuração</h2>
+                <div class="form-group">
+                    <label for="documentIdInput">Dominio do Site (ID do Documento):</label>
+                    <input type="text" id="documentIdInput" placeholder="ex: wzzm.org ou defaultConfig">
+                </div>
+                <div class="doc-management-buttons">
+                    <button type="button" id="loadSpecificConfigButton">Carregar Configuração</button>
+                    <button type="button" id="createNewConfigButton" style="background-color: #17a2b8;">Nova Configuração</button>
+                </div>
+                <p id="docMessage" class="error-message" style="color: green;"></p>
+            </div>
+
             <form id="jsonForm">
                 <div class="form-group">
                     <label for="nomeCompletoWiki">Nome Completo da Wiki:</label>
@@ -172,7 +202,6 @@
                 </div>
 
                 <div class="action-buttons">
-                    <button type="button" id="loadFromFirebaseButton">Carregar do Firebase</button>
                     <button type="submit">Gerar & Salvar no Firebase</button>
                 </div>
             </form>
@@ -205,7 +234,8 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        const configDocRef = db.collection('configuracoes').doc('wikiConfig');
+        // Variável para armazenar o ID do documento atualmente selecionado/editado
+        let currentConfigDocId = 'wikiConfig'; // Valor padrão inicial
 
         // Referências aos elementos HTML
         const authSection = document.getElementById('auth-section');
@@ -217,6 +247,11 @@
         const authError = document.getElementById('authError');
         const currentUserEmailSpan = document.getElementById('currentUserEmail');
 
+        const documentIdInput = document.getElementById('documentIdInput');
+        const loadSpecificConfigButton = document.getElementById('loadSpecificConfigButton');
+        const createNewConfigButton = document.getElementById('createNewConfigButton');
+        const docMessage = document.getElementById('docMessage');
+
         const form = document.getElementById('jsonForm');
         const nomeCompletoWikiInput = document.getElementById('nomeCompletoWiki');
         const nomePaginaDrawerInput = document.getElementById('nomePaginaDrawer');
@@ -225,7 +260,6 @@
         const corSiteColorInput = document.getElementById('corSiteColor');
         const outputDiv = document.getElementById('output');
         const copyButton = document.getElementById('copyButton');
-        const loadFromFirebaseButton = document.getElementById('loadFromFirebaseButton');
 
         // Função para preencher o formulário com os dados
         function fillForm(data) {
@@ -242,6 +276,27 @@
                 corSiteTextInput.value = '#000000';
                 corSiteColorInput.value = '#000000';
             }
+        }
+
+        // Função para limpar e resetar o formulário
+        function resetForm() {
+            documentIdInput.value = '';
+            fillForm({});
+            outputDiv.textContent = 'Formulário limpo para nova configuração.';
+            copyButton.style.display = 'none';
+            docMessage.textContent = '';
+            currentConfigDocId = ''; // Limpa o ID atual para nova criação
+        }
+
+        // Função para sanitizar o ID do documento (domínio)
+        function cleanDocId(id) {
+            if (!id) return '';
+            let cleanedId = id.trim().toLowerCase();
+            if (cleanedId.startsWith('www.')) {
+                cleanedId = cleanedId.substring(4);
+            }
+            // Adicione outras regras de sanitização se necessário (ex: remover caminhos, portas)
+            return cleanedId.split('/')[0].split(':')[0]; // Remove paths and ports
         }
 
         // --- Funções de Autenticação ---
@@ -290,12 +345,13 @@
                 authSection.style.display = 'none';
                 editorSection.style.display = 'block';
                 currentUserEmailSpan.textContent = user.email;
-                loadConfigFromFirebase(); // Carrega os dados após o login
+                // Não carrega automaticamente, espera o usuário clicar ou usar o ID
+                outputDiv.textContent = 'Usuário logado. Digite o domínio do site para carregar/criar uma configuração.';
             } else {
                 // Usuário deslogado
                 authSection.style.display = 'block';
                 editorSection.style.display = 'none';
-                fillForm({}); // Limpa o formulário
+                resetForm(); // Limpa o formulário e ID
                 outputDiv.textContent = 'Faça login para editar as configurações.';
                 copyButton.style.display = 'none';
             }
@@ -303,52 +359,83 @@
 
         // --- Funções de interação com Firebase Firestore ---
 
-        async function loadConfigFromFirebase() {
+        async function loadConfigFromFirebase(docId) {
+            if (!docId) {
+                docMessage.textContent = 'Por favor, insira um Domínio do Site (ID do Documento) para carregar.';
+                docMessage.style.color = 'red';
+                return;
+            }
+            const cleanedId = cleanDocId(docId);
+            if (!cleanedId) {
+                docMessage.textContent = 'ID do Documento inválido após limpeza.';
+                docMessage.style.color = 'red';
+                return;
+            }
+
+            currentConfigDocId = cleanedId; // Atualiza o ID do documento sendo editado
+            docMessage.textContent = `Carregando dados para: ${currentConfigDocId}...`;
+            docMessage.style.color = 'green';
             outputDiv.textContent = 'Carregando dados do Firebase...';
+            
             try {
-                const doc = await configDocRef.get();
+                const doc = await db.collection('configuracoes').doc(currentConfigDocId).get();
                 if (doc.exists) {
                     const data = doc.data();
                     fillForm(data);
                     const jsonString = JSON.stringify(data, null, 4);
                     outputDiv.textContent = jsonString;
                     copyButton.style.display = 'block';
-                    // alert('Configurações carregadas do Firebase com sucesso!'); // Removido para não ser intrusivo
+                    docMessage.textContent = `Configurações para "${currentConfigDocId}" carregadas com sucesso!`;
+                    docMessage.style.color = 'green';
                 } else {
-                    console.log("Nenhum documento encontrado no Firebase para 'wikiConfig'. Preenchendo com valores vazios.");
-                    outputDiv.textContent = 'Nenhum dado encontrado no Firebase para wikiConfig. Preenchendo com valores vazios.';
+                    console.log(`Nenhum documento encontrado no Firebase para '${currentConfigDocId}'. Preenchendo com valores vazios.`);
+                    outputDiv.textContent = `Nenhum dado encontrado no Firebase para "${currentConfigDocId}". Preenchendo com valores vazios.`;
                     fillForm({});
                     copyButton.style.display = 'none';
+                    docMessage.textContent = `Documento "${currentConfigDocId}" não encontrado. Formulário pronto para nova criação.`;
+                    docMessage.style.color = 'orange';
                 }
             } catch (error) {
                 console.error("Erro ao carregar do Firebase: ", error);
                 if (error.code === 'permission-denied' || error.code === 'missing-or-insufficient-permissions') {
                     outputDiv.textContent = 'Permissão negada. Você pode não ter acesso para ler esses dados.';
-                    alert('Permissão negada. Verifique suas regras do Firestore ou se você está logado com a conta correta.');
+                    docMessage.textContent = 'Permissão negada. Verifique suas regras do Firestore ou se você está logado com a conta correta.';
                 } else {
                     outputDiv.textContent = `Erro ao carregar dados: ${error.message}.`;
-                    alert('Erro ao carregar configurações do Firebase. Verifique o console.');
+                    docMessage.textContent = `Erro ao carregar: ${error.message}.`;
                 }
+                docMessage.style.color = 'red';
             }
         }
 
         async function saveConfigToFirebase(data) {
+            if (!currentConfigDocId) {
+                docMessage.textContent = 'Por favor, insira um Domínio do Site (ID do Documento) ou carregue um para salvar.';
+                docMessage.style.color = 'red';
+                return;
+            }
+
+            docMessage.textContent = `Salvando dados para: ${currentConfigDocId}...`;
+            docMessage.style.color = 'green';
             outputDiv.textContent = 'Salvando dados no Firebase...';
+
             try {
-                await configDocRef.set(data);
+                await db.collection('configuracoes').doc(currentConfigDocId).set(data);
                 const jsonString = JSON.stringify(data, null, 4);
                 outputDiv.textContent = jsonString;
                 copyButton.style.display = 'block';
-                alert('Configurações salvas no Firebase com sucesso!');
+                docMessage.textContent = `Configurações para "${currentConfigDocId}" salvas com sucesso!`;
+                docMessage.style.color = 'green';
             } catch (error) {
                 console.error("Erro ao salvar no Firebase: ", error);
-                 if (error.code === 'permission-denied' || error.code === 'missing-or-insufficient-permissions') {
+                if (error.code === 'permission-denied' || error.code === 'missing-or-insufficient-permissions') {
                     outputDiv.textContent = 'Permissão negada. Você não tem acesso para salvar esses dados.';
-                    alert('Permissão negada. Verifique suas regras do Firestore ou se você está logado com a conta correta.');
+                    docMessage.textContent = 'Permissão negada. Verifique suas regras do Firestore ou se você está logado com a conta correta.';
                 } else {
                     outputDiv.textContent = `Erro ao salvar dados: ${error.message}.`;
-                    alert('Erro ao salvar configurações no Firebase. Verifique o console.');
+                    docMessage.textContent = `Erro ao salvar: ${error.message}.`;
                 }
+                docMessage.style.color = 'red';
             }
         }
 
@@ -364,8 +451,33 @@
             }
         });
 
+        // Event listener para carregar configuração específica
+        loadSpecificConfigButton.addEventListener('click', () => {
+            loadConfigFromFirebase(documentIdInput.value);
+        });
+
+        // Event listener para iniciar uma nova configuração
+        createNewConfigButton.addEventListener('click', () => {
+            resetForm();
+            outputDiv.textContent = 'Formulário limpo. Digite o Domínio do Site para criar uma nova configuração.';
+        });
+
+        // Event listener para o formulário de salvamento
         form.addEventListener('submit', async function(event) {
             event.preventDefault();
+            
+            // Certifica-se de que o currentConfigDocId está definido (do input ou de um carregamento anterior)
+            if (!currentConfigDocId) {
+                // Se o currentConfigDocId não foi definido por um carregamento, usa o valor do input
+                const inputDocId = cleanDocId(documentIdInput.value);
+                if (!inputDocId) {
+                    docMessage.textContent = 'Por favor, insira um Domínio do Site (ID do Documento) válido antes de salvar.';
+                    docMessage.style.color = 'red';
+                    return;
+                }
+                currentConfigDocId = inputDocId;
+            }
+
             const updatedJson = {
                 "nomeCompletoWiki": nomeCompletoWikiInput.value,
                 "nomePaginaDrawer": nomePaginaDrawerInput.value,
@@ -374,8 +486,6 @@
             };
             await saveConfigToFirebase(updatedJson);
         });
-
-        loadFromFirebaseButton.addEventListener('click', loadConfigFromFirebase);
 
         copyButton.addEventListener('click', () => {
             const textToCopy = outputDiv.textContent;
@@ -387,8 +497,9 @@
             });
         });
 
-        // Não chamamos loadConfigFromFirebase() diretamente aqui.
-        // Ele será chamado por onAuthStateChanged assim que o usuário estiver logado.
+        // Não chamamos loadConfigFromFirebase() diretamente no início.
+        // Ele será chamado pelo usuário via botões ou pelo `onAuthStateChanged`
+        // apenas se houver um caso de uso para carregar algo automaticamente (não é o caso aqui).
     </script>
 </body>
 </html>
