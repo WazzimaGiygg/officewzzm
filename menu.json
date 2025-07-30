@@ -3,5 +3,11 @@
         "label": "Editor de Texto",
         "href": "./ferramentas/editordetexto.html",
         "requiresAuth": false
+    },
+        {
+        "label": "Alterar JSON de Página WZZM",
+        "href": "./ferramentas/alterarjsondepagina.html",
+        "requiresAuth": false
     }
+    
 ]
