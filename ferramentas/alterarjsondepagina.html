@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editar Configurações da Wiki</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        .container {
+            background-color: #fff;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-width: 500px;
+            margin: 30px auto;
+        }
+        h1 {
+            text-align: center;
+            color: #0056b3;
+            margin-bottom: 25px;
+        }
+        .form-group {
+            margin-bottom: 18px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+        }
+        input[type="text"],
+        input[type="color"] {
+            width: calc(100% - 20px);
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        input[type="color"] {
+            height: 40px; /* Adjust height for color input */
+            width: 80px;
+            vertical-align: middle;
+            margin-left: 10px;
+            cursor: pointer;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 17px;
+            width: 100%;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #output {
+            margin-top: 25px;
+            padding: 15px;
+            background-color: #e9ecef;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            font-family: 'Courier New', Courier, monospace;
+            white-space: pre-wrap;
+            word-break: break-all;
+            font-size: 14px;
+            color: #333;
+        }
+        .copy-button {
+            display: block;
+            margin-top: 10px;
+            background-color: #28a745;
+            color: white;
+            padding: 8px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 15px;
+            transition: background-color 0.3s ease;
+        }
+        .copy-button:hover {
+            background-color: #218838;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Editar Configurações da Wiki</h1>
+
+        <form id="jsonForm">
+            <div class="form-group">
+                <label for="nomeCompletoWiki">Nome Completo da Wiki:</label>
+                <input type="text" id="nomeCompletoWiki" name="nomeCompletoWiki">
+            </div>
+
+            <div class="form-group">
+                <label for="nomePaginaDrawer">Nome da Página no Drawer:</label>
+                <input type="text" id="nomePaginaDrawer" name="nomePaginaDrawer">
+            </div>
+
+            <div class="form-group">
+                <label for="linkProcurarArtigos">Link para Procurar Artigos:</label>
+                <input type="text" id="linkProcurarArtigos" name="linkProcurarArtigos">
+            </div>
+
+            <div class="form-group">
+                <label for="corSite">Cor do Site:</label>
+                <input type="text" id="corSiteText" name="corSiteText" style="width: calc(100% - 100px); display: inline-block;">
+                <input type="color" id="corSiteColor" name="corSiteColor" style="display: inline-block;">
+            </div>
+
+            <button type="submit">Gerar JSON Atualizado</button>
+        </form>
+
+        <div id="output">
+            </div>
+        <button class="copy-button" id="copyButton" style="display: none;">Copiar JSON</button>
+    </div>
+
+    <script>
+        // Nosso JSON inicial
+        const initialJson = {
+            "nomeCompletoWiki": "Wiki Zone Zero Mod",
+            "nomePaginaDrawer": "Wiki Zone Zero Mod",
+            "linkProcurarArtigos": "Procurar",
+            "corSite": "#00FFFF"
+        };
+
+        const form = document.getElementById('jsonForm');
+        const nomeCompletoWikiInput = document.getElementById('nomeCompletoWiki');
+        const nomePaginaDrawerInput = document.getElementById('nomePaginaDrawer');
+        const linkProcurarArtigosInput = document.getElementById('linkProcurarArtigos');
+        const corSiteTextInput = document.getElementById('corSiteText');
+        const corSiteColorInput = document.getElementById('corSiteColor');
+        const outputDiv = document.getElementById('output');
+        const copyButton = document.getElementById('copyButton');
+
+        // Função para preencher o formulário com os dados do JSON inicial
+        function fillForm() {
+            nomeCompletoWikiInput.value = initialJson.nomeCompletoWiki;
+            nomePaginaDrawerInput.value = initialJson.nomePaginaDrawer;
+            linkProcurarArtigosInput.value = initialJson.linkProcurarArtigos;
+            corSiteTextInput.value = initialJson.corSite;
+            corSiteColorInput.value = initialJson.corSite; // Sincroniza o input de cor
+        }
+
+        // Atualiza o input de texto de cor quando a cor é alterada pelo seletor de cor
+        corSiteColorInput.addEventListener('input', (event) => {
+            corSiteTextInput.value = event.target.value;
+        });
+
+        // Atualiza o seletor de cor quando o texto da cor é alterado
+        corSiteTextInput.addEventListener('input', (event) => {
+            // Valida se o valor é um hexadecimal válido antes de atribuir
+            if (/^#([0-9A-F]{3}){1,2}$/i.test(event.target.value)) {
+                corSiteColorInput.value = event.target.value;
+            }
+        });
+
+        // Evento de submit do formulário
+        form.addEventListener('submit', function(event) {
+            event.preventDefault(); // Impede o envio padrão do formulário
+
+            // Cria um novo objeto com os valores do formulário
+            const updatedJson = {
+                "nomeCompletoWiki": nomeCompletoWikiInput.value,
+                "nomePaginaDrawer": nomePaginaDrawerInput.value,
+                "linkProcurarArtigos": linkProcurarArtigosInput.value,
+                "corSite": corSiteTextInput.value
+            };
+
+            // Converte o objeto para uma string JSON formatada
+            const jsonString = JSON.stringify(updatedJson, null, 4); // null, 4 para indentação bonita
+
+            // Exibe o JSON atualizado na tela
+            outputDiv.textContent = jsonString;
+            copyButton.style.display = 'block'; // Mostra o botão de copiar
+        });
+
+        // Evento para copiar o JSON
+        copyButton.addEventListener('click', () => {
+            const textToCopy = outputDiv.textContent;
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                alert('JSON copiado para a área de transferência!');
+            }).catch(err => {
+                console.error('Erro ao copiar: ', err);
+                alert('Falha ao copiar o JSON.');
+            });
+        });
+
+        // Preenche o formulário quando a página carrega
+        fillForm();
+    </script>
+</body>
+</html>
