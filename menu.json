@@ -4,7 +4,14 @@
         "href": "./ferramentas/editordetexto.html",
         "requiresAuth": false
     },
-        {
+
+    {
+        "label": "Editor de HTML formatado",
+        "href": "./ferramentas/editorformatadiedehtml.html",
+        "requiresAuth": false
+    },
+    
+    {
         "label": "Alterar JSON de Página WZZM",
         "href": "./ferramentas/alterarjsondepagina.html",
         "requiresAuth": false
