@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editor MHT</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.indigo-pink.min.css">
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', 'Helvetica', Arial, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 20px auto;
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 2px 0 rgba(0,0,0,.14), 0 3px 1px -2px rgba(0,0,0,.2), 0 1px 5px 0 rgba(0,0,0,.12);
+        }
+        h1 {
+            color: #3f51b5;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+        .mdl-textfield {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        #editor-container {
+            height: 300px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(0,0,0,.12);
+            border-radius: 4px;
+        }
+        .ql-toolbar.ql-snow {
+            border-top-left-radius: 4px;
+            border-top-right-radius: 4px;
+        }
+        .ql-container.ql-snow {
+            border-bottom-left-radius: 4px;
+            border-bottom-right-radius: 4px;
+        }
+        .actions {
+            text-align: right;
+            margin-top: 30px;
+        }
+        .mdl-button {
+            margin-left: 10px; /* Alinhar botões à direita */
+        }
+        .file-upload-container {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end; /* Alinhar à direita */
+            margin-bottom: 20px;
+        }
+        .file-upload-container label {
+            margin-right: 10px;
+        }
+        #file-input {
+            display: none; /* Esconder o input de arquivo nativo */
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Editor de Texto para MHT</h1>
+
+        <div class="file-upload-container">
+            <label class="mdl-button mdl-js-button mdl-button--raised" for="file-input">
+                Carregar MHT
+            </label>
+            <input type="file" id="file-input" accept=".mht,.mhtml,.html">
+        </div>
+
+        <div id="editor-container"></div>
+
+        <div class="actions">
+            <button id="save-mht-btn" class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored">
+                Salvar como MHT
+            </button>
+        </div>
+    </div>
+
+    <script src="https://code.getmdl.io/1.3.0/material.min.js"></script>
+    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // Inicialização do Quill Editor
+            const quill = new Quill('#editor-container', {
+                theme: 'snow',
+                modules: {
+                    toolbar: [
+                        [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+                        ['bold', 'italic', 'underline', 'strike'],
+                        ['blockquote', 'code-block'],
+                        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                        [{ 'indent': '-1'}, { 'indent': '+1' }],
+                        ['link', 'image'],
+                        ['clean']
+                    ]
+                },
+                placeholder: 'Comece a digitar aqui...'
+            });
+
+            const saveMHTBtn = document.getElementById('save-mht-btn');
+            const fileInput = document.getElementById('file-input');
+
+            // --- Funções de Salvar e Carregar ---
+
+            function saveAsMHT() {
+                // Conteúdo do editor, incluindo tags HTML e imagens embutidas (Data URI)
+                const editorContent = quill.root.innerHTML;
+
+                // Título do arquivo
+                const title = "Documento Editor Online";
+
+                // Constrói o HTML completo para o arquivo
+                const fileContent = `
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>${title}</title>
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Roboto', 'Helvetica', Arial, sans-serif; margin: 20px; }
+        .ql-editor { padding: 0; }
+        /* Adicione aqui qualquer outro estilo que deseje preservar no arquivo salvo */
+    </style>
+</head>
+<body>
+    <div id="editor-content-wrapper" class="ql-editor">${editorContent}</div>
+</body>
+</html>
+                `.trim();
+
+                // Cria um objeto Blob com o conteúdo do arquivo
+                const blob = new Blob([fileContent], { type: 'text/html' });
+
+                // Cria um URL para o blob
+                const url = URL.createObjectURL(blob);
+
+                // Cria um link de download invisível
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'documento_editor.mht'; // Define o nome do arquivo com a extensão .mht
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+
+                // Libera o URL do blob
+                URL.revokeObjectURL(url);
+            }
+
+            function loadMHT(file) {
+                const reader = new FileReader();
+
+                reader.onload = (e) => {
+                    const content = e.target.result;
+
+                    // Cria um DOM parser para extrair o conteúdo do body
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(content, 'text/html');
+
+                    // Encontra o wrapper do conteúdo do editor no arquivo salvo
+                    const editorContentWrapper = doc.getElementById('editor-content-wrapper');
+                    if (editorContentWrapper) {
+                        quill.root.innerHTML = editorContentWrapper.innerHTML;
+                    } else {
+                        // Se não encontrar o wrapper, tenta carregar o conteúdo do body inteiro
+                        quill.root.innerHTML = doc.body.innerHTML;
+                    }
+                };
+
+                reader.onerror = (e) => {
+                    console.error("Erro ao carregar o arquivo:", e);
+                    alert("Erro ao carregar o arquivo. Verifique se é um arquivo HTML ou MHT válido.");
+                };
+
+                reader.readAsText(file);
+            }
+
+            // --- Event Listeners ---
+            saveMHTBtn.addEventListener('click', saveAsMHT);
+
+            fileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    loadMHT(file);
+                }
+            });
+
+            // Se você tiver a biblioteca MDL, chame o upgrade
+            if (window.componentHandler) {
+                window.componentHandler.upgradeDom();
+            }
+        });
+    </script>
+</body>
+</html>
