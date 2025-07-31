@@ -76,8 +76,8 @@
 
         <div id="contentDisplay" class="bg-gray-50 p-6 rounded-lg shadow-inner space-y-4">
             <h3 class="text-xl font-bold text-blue-700">Conteúdo Recuperado:</h3>
-            <p id="displayInternalName" class="text-gray-700">Nome Interno: <span class="font-normal text-gray-600"></span></p>
-            <p id="displayContent" class="text-gray-700">Conteúdo: <span class="font-normal text-gray-600"></span></p>
+            <p id="displayInternalName" class="text-gray-700">Nome Interno: <span class="font-normal text-gray-600">N/A</span></p>
+            <p id="displayContent" class="text-gray-700">Conteúdo: <span class="font-normal text-gray-600">N/A</span></p>
         </div>
 
         <!-- Custom Modal for Alerts -->
@@ -97,20 +97,32 @@
         import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
         // --- Configuração e Inicialização do Firebase ---
-        // As variáveis globais __firebase_config e __initial_auth_token são fornecidas pelo ambiente do Canvas.
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
         let db, auth;
         let isUserAdmin = false; // Flag para verificar o status de admin
 
         async function initializeAppAndAuth() {
+            const statusDiv = document.getElementById('status-message');
+            
+            // Log para debug: Verifica se a configuração foi fornecida
+            const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+            const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+            
+            console.log("Firebase Config recebida:", firebaseConfig);
+            console.log("Token de Autenticação inicial recebido:", initialAuthToken);
+
+            if (!firebaseConfig) {
+                const errorMsg = "Erro: Configuração do Firebase não encontrada. O aplicativo não pode ser inicializado.";
+                console.error(errorMsg);
+                statusDiv.textContent = errorMsg;
+                statusDiv.className = 'text-center text-lg font-semibold p-4 rounded-lg bg-red-200 text-red-800';
+                return;
+            }
+
             try {
                 const app = initializeApp(firebaseConfig);
                 auth = getAuth(app);
                 db = getFirestore(app);
 
-                // Autentica o usuário com o token personalizado ou anonimamente
                 if (initialAuthToken) {
                     await signInWithCustomToken(auth, initialAuthToken);
                 } else {
@@ -119,7 +131,6 @@
 
                 // Listener para o estado de autenticação
                 onAuthStateChanged(auth, async (user) => {
-                    const statusDiv = document.getElementById('status-message');
                     const adminControlsDiv = document.getElementById('admin-controls');
                     
                     if (user) {
@@ -130,19 +141,19 @@
 
                             if (userDocSnap.exists() && userDocSnap.data().isAdmin === true) {
                                 isUserAdmin = true;
-                                statusDiv.textContent = "Autenticado como admin! Você pode salvar e abrir conteúdo.";
+                                statusDiv.textContent = `Autenticado como admin (${user.uid})! Você pode salvar e abrir conteúdo.`;
                                 statusDiv.className = 'text-center text-lg font-semibold p-4 rounded-lg bg-green-200 text-green-800';
                                 adminControlsDiv.style.display = 'block';
                             } else {
                                 isUserAdmin = false;
-                                statusDiv.textContent = "Autenticado, mas você não é um administrador. O acesso é restrito.";
+                                statusDiv.textContent = `Autenticado, mas você não é um administrador. Seu UID é: ${user.uid}. O acesso é restrito.`;
                                 statusDiv.className = 'text-center text-lg font-semibold p-4 rounded-lg bg-yellow-200 text-yellow-800';
                                 adminControlsDiv.style.display = 'none';
                             }
                         } catch (error) {
                             console.error("Erro ao verificar status de admin:", error);
                             isUserAdmin = false;
-                            statusDiv.textContent = "Erro ao verificar status de admin. " + error.message;
+                            statusDiv.textContent = `Erro ao verificar status de admin: ${error.message}`;
                             statusDiv.className = 'text-center text-lg font-semibold p-4 rounded-lg bg-red-200 text-red-800';
                             adminControlsDiv.style.display = 'none';
                         }
@@ -154,9 +165,8 @@
                     }
                 });
             } catch (error) {
-                console.error("Erro ao inicializar Firebase:", error);
-                const statusDiv = document.getElementById('status-message');
-                statusDiv.textContent = "Erro ao inicializar o aplicativo. Por favor, tente novamente.";
+                console.error("Erro fatal ao inicializar o Firebase:", error);
+                statusDiv.textContent = `Erro fatal na inicialização: ${error.message}`;
                 statusDiv.className = 'text-center text-lg font-semibold p-4 rounded-lg bg-red-200 text-red-800';
             }
         }
@@ -175,7 +185,7 @@
         }
 
         // Função para esconder o modal
-        function hideModal() {
+        window.hideModal = function() {
             const modal = document.getElementById('custom-modal');
             modal.style.display = 'none';
         }
@@ -190,7 +200,6 @@
 
         // Função para salvar conteúdo
         window.saveContent = async function() {
-            // Apenas executa se o usuário for um admin
             if (!isUserAdmin) {
                 showMessage('Você não tem permissão para salvar conteúdo. Apenas administradores podem fazer isso.');
                 return;
@@ -200,16 +209,8 @@
             const internalName = document.getElementById('internalName').value.trim();
             const content = document.getElementById('content').value;
 
-            if (!documentName) {
-                showMessage('Por favor, insira um nome para o documento.');
-                return;
-            }
-            if (!internalName) {
-                showMessage('Por favor, insira um nome interno.');
-                return;
-            }
-            if (!content) {
-                showMessage('Por favor, insira algum conteúdo.');
+            if (!documentName || !internalName || !content) {
+                showMessage('Por favor, preencha todos os campos.');
                 return;
             }
 
@@ -218,6 +219,7 @@
                 await setDoc(docRef, {
                     nomeInterno: internalName,
                     conteudo: content,
+                    userId: auth.currentUser.uid, // Adiciona o UID do usuário
                     timestamp: serverTimestamp()
                 });
                 showMessage(`Documento "${documentName}" salvo com sucesso!`);
@@ -234,7 +236,6 @@
 
         // Função para abrir conteúdo
         window.openContent = async function() {
-            // Apenas executa se o usuário for um admin (conforme as regras de segurança)
             if (!isUserAdmin) {
                 showMessage('Você não tem permissão para ler este conteúdo. Apenas administradores podem fazer isso.');
                 return;
