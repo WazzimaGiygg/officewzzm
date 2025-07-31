@@ -10,6 +10,13 @@
         "href": "./ferramentas/editorformatadiedehtml.html",
         "requiresAuth": false
     },
+
+    {
+        "label": "Adicionador de HTML",
+        "href": "./ferramentas/adicionadordehtml.html",
+        "requiresAuth": false
+    },
+    
     
     {
         "label": "Alterar JSON de Página WZZM",
