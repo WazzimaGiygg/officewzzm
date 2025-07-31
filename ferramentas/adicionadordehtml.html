@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase HTML2W - Salvar e Abrir</title>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        .container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1, h2 {
+            color: #0056b3;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        input[type="text"], textarea {
+            width: calc(100% - 20px);
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        textarea {
+            resize: vertical;
+            min-height: 150px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #message {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border-color: #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border-color: #f5c6cb;
+        }
+        #contentDisplay {
+            margin-top: 20px;
+            border: 1px dashed #ccc;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 4px;
+            white-space: pre-wrap; /* Preserves whitespace and wraps text */
+            word-wrap: break-word; /* Breaks long words */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Firebase HTML2W - Gerenciador de Conteúdo</h1>
+
+        <p>Este aplicativo permite salvar e recuperar conteúdo na coleção "HTML2W" do Firebase Firestore.</p>
+
+        <hr>
+
+        <h2>Salvar Conteúdo</h2>
+        <label for="documentName">Nome do Documento (ID):</label>
+        <input type="text" id="documentName" placeholder="Ex: meu-primeiro-documento">
+
+        <label for="internalName">Nome Interno:</label>
+        <input type="text" id="internalName" placeholder="Ex: Artigo sobre tecnologia">
+
+        <label for="content">Conteúdo (grande quantidade de caracteres):</label>
+        <textarea id="content" placeholder="Insira seu conteúdo aqui..."></textarea>
+
+        <button onclick="saveContent()">Salvar Conteúdo</button>
+
+        <hr>
+
+        <h2>Abrir Conteúdo</h2>
+        <label for="openDocumentName">Nome do Documento para Abrir (ID):</label>
+        <input type="text" id="openDocumentName" placeholder="Ex: meu-primeiro-documento">
+        <button onclick="openContent()">Abrir Conteúdo</button>
+
+        <div id="contentDisplay">
+            <h3>Conteúdo Recuperado:</h3>
+            <p id="displayInternalName">Nome Interno: </p>
+            <p id="displayContent">Conteúdo: </p>
+        </div>
+
+        <div id="message"></div>
+    </div>
+
+    <script>
+        // --- Configuração do Firebase ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyB9GkSqTIZ0kbVsba_WOdQeVAETrF9qna0",
+            authDomain: "wzzm-ce3fc.firebaseapp.com",
+            projectId: "wzzm-ce3fc",
+            storageBucket: "wzzm-ce3fc.appspot.com",
+            messagingSenderId: "249427877153",
+            appId: "1:249427877153:web:0e4297294794a5aadeb260",
+            measurementId: "G-PLKNZNFCQ8" // Opcional, para Analytics
+        };
+
+        // Inicialize o Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const collectionName = "HTML2W"; // Nome da coleção fixa
+
+        // Função para exibir mensagens na tela
+        function showMessage(msg, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = msg;
+            messageDiv.className = 'message ' + type;
+            setTimeout(() => {
+                messageDiv.textContent = '';
+                messageDiv.className = 'message';
+            }, 5000);
+        }
+
+        // Função para salvar conteúdo
+        async function saveContent() {
+            const documentName = document.getElementById('documentName').value.trim();
+            const internalName = document.getElementById('internalName').value.trim();
+            const content = document.getElementById('content').value;
+
+            if (!documentName) {
+                showMessage('Por favor, insira um nome para o documento.', 'error');
+                return;
+            }
+
+            if (!internalName) {
+                showMessage('Por favor, insira um nome interno.', 'error');
+                return;
+            }
+
+            if (!content) {
+                showMessage('Por favor, insira algum conteúdo.', 'error');
+                return;
+            }
+
+            try {
+                await db.collection(collectionName).doc(documentName).set({
+                    nomeInterno: internalName,
+                    conteudo: content,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp() // Adiciona um timestamp
+                });
+                showMessage(`Documento "${documentName}" salvo com sucesso!`, 'success');
+                // Limpar campos após salvar
+                document.getElementById('documentName').value = '';
+                document.getElementById('internalName').value = '';
+                document.getElementById('content').value = '';
+            } catch (error) {
+                console.error("Erro ao salvar documento:", error);
+                showMessage(`Erro ao salvar documento: ${error.message}`, 'error');
+            }
+        }
+
+        // Função para abrir conteúdo
+        async function openContent() {
+            const openDocumentName = document.getElementById('openDocumentName').value.trim();
+            const displayInternalName = document.getElementById('displayInternalName');
+            const displayContent = document.getElementById('displayContent');
+
+            displayInternalName.textContent = 'Nome Interno: ';
+            displayContent.textContent = 'Conteúdo: ';
+
+            if (!openDocumentName) {
+                showMessage('Por favor, insira o nome do documento para abrir.', 'error');
+                return;
+            }
+
+            try {
+                const docRef = db.collection(collectionName).doc(openDocumentName);
+                const doc = await docRef.get();
+
+                if (doc.exists) {
+                    const data = doc.data();
+                    displayInternalName.textContent = `Nome Interno: ${data.nomeInterno || 'N/A'}`;
+                    displayContent.textContent = `Conteúdo: ${data.conteudo || 'N/A'}`;
+                    showMessage(`Documento "${openDocumentName}" carregado com sucesso!`, 'success');
+                } else {
+                    showMessage(`Documento "${openDocumentName}" não encontrado.`, 'error');
+                }
+            } catch (error) {
+                console.error("Erro ao abrir documento:", error);
+                showMessage(`Erro ao abrir documento: ${error.message}`, 'error');
+            }
+        }
+    </script>
+</body>
+</html>
