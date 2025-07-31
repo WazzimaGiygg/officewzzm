@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Firebase HTML2W - Salvar e Abrir</title>
+    <title>Firebase CMS - Gerenciador de Conteúdo</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
@@ -11,13 +11,15 @@
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f0f2f5;
-        }
-        .container {
-            max-width: 900px;
         }
         .btn-primary {
             background-color: #3b82f6;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 700;
         }
         .btn-primary:hover {
             background-color: #2563eb;
@@ -25,18 +27,34 @@
     </style>
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
-    <div class="container bg-white rounded-xl shadow-lg p-8 space-y-6">
-        <h1 class="text-3xl font-bold text-center text-blue-700">Firebase HTML2W - Gerenciador de Conteúdo</h1>
+    <div class="container bg-white rounded-xl shadow-lg p-8 space-y-6 max-w-2xl w-full">
+        <h1 class="text-3xl font-bold text-center text-blue-700">Firebase CMS - Gerenciador de Conteúdo</h1>
 
-        <p class="text-gray-600 text-center">Este aplicativo permite salvar e recuperar conteúdo na coleção "HTML2W" do Firebase Firestore. O acesso é restrito a administradores.</p>
+        <p class="text-gray-600 text-center">Faça login com uma conta de administrador para salvar e carregar conteúdo no Firestore.</p>
 
         <div id="status-message" class="text-center text-lg font-semibold p-4 rounded-lg bg-gray-200 text-gray-800">
-            Aguardando autenticação...
+            Por favor, faça login para continuar.
+        </div>
+        
+        <div id="auth-section" class="space-y-4">
+            <h2 class="text-2xl font-bold text-center text-blue-700">Login</h2>
+            <div>
+                <label for="email" class="block text-gray-700 font-semibold mb-1">E-mail:</label>
+                <input type="email" id="email" placeholder="admin@example.com" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div>
+                <label for="password" class="block text-gray-700 font-semibold mb-1">Senha:</label>
+                <input type="password" id="password" placeholder="••••••••" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <button id="loginButton" class="w-full btn-primary transition duration-300 ease-in-out transform hover:scale-105">Entrar</button>
         </div>
 
-        <hr class="border-gray-300">
-
         <div id="admin-controls" class="space-y-6" style="display:none;">
+            <p id="user-info" class="text-center font-semibold text-gray-700">Bem-vindo, <span id="currentUserEmail"></span>!</p>
+            <button id="logoutButton" class="w-full bg-red-500 text-white font-bold py-3 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 hover:bg-red-600">Sair</button>
+
+            <hr class="border-gray-300">
+
             <!-- Salvar Conteúdo -->
             <div class="space-y-4">
                 <h2 class="text-2xl font-bold text-blue-700">Salvar Conteúdo</h2>
@@ -94,85 +112,103 @@
         // Importa os módulos necessários do Firebase (v11)
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
         // --- Configuração e Inicialização do Firebase ---
+        // ATENÇÃO: SUBSTITUA ESTE OBJETO COM AS INFORMAÇÕES DO SEU PROJETO FIREBASE
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
         let db, auth;
-        let isUserAdmin = false; // Flag para verificar o status de admin
-
-        async function initializeAppAndAuth() {
+        let isUserAdmin = false;
+        
+        try {
+            const app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+            console.log("Firebase inicializado com sucesso.");
+        } catch (error) {
+            console.error("Erro fatal ao inicializar o Firebase:", error);
             const statusDiv = document.getElementById('status-message');
-            
-            // Log para debug: Verifica se a configuração foi fornecida
-            const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
-            const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-            
-            console.log("Firebase Config recebida:", firebaseConfig);
-            console.log("Token de Autenticação inicial recebido:", initialAuthToken);
+            statusDiv.textContent = `Erro fatal na inicialização do Firebase: ${error.message}`;
+            statusDiv.className = 'text-center text-lg font-semibold p-4 rounded-lg bg-red-200 text-red-800';
+        }
 
-            if (!firebaseConfig) {
-                const errorMsg = "Erro: Configuração do Firebase não encontrada. O aplicativo não pode ser inicializado.";
-                console.error(errorMsg);
-                statusDiv.textContent = errorMsg;
-                statusDiv.className = 'text-center text-lg font-semibold p-4 rounded-lg bg-red-200 text-red-800';
-                return;
-            }
+        // --- Eventos de Autenticação ---
+        const loginButton = document.getElementById('loginButton');
+        const logoutButton = document.getElementById('logoutButton');
+
+        loginButton.addEventListener('click', async () => {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
 
             try {
-                const app = initializeApp(firebaseConfig);
-                auth = getAuth(app);
-                db = getFirestore(app);
+                await signInWithEmailAndPassword(auth, email, password);
+                showMessage("Login realizado com sucesso! Verificando permissões...");
+            } catch (error) {
+                console.error("Erro de login:", error);
+                showMessage(`Erro de login: ${error.message}`);
+            }
+        });
 
-                if (initialAuthToken) {
-                    await signInWithCustomToken(auth, initialAuthToken);
-                } else {
-                    await signInAnonymously(auth);
-                }
+        logoutButton.addEventListener('click', async () => {
+            try {
+                await signOut(auth);
+                showMessage("Você saiu da sua conta.");
+            } catch (error) {
+                console.error("Erro ao sair:", error);
+                showMessage(`Erro ao sair: ${error.message}`);
+            }
+        });
 
-                // Listener para o estado de autenticação
-                onAuthStateChanged(auth, async (user) => {
-                    const adminControlsDiv = document.getElementById('admin-controls');
-                    
-                    if (user) {
-                        try {
-                            // Verifica se o usuário é um admin
-                            const userDocRef = doc(db, "users", user.uid);
-                            const userDocSnap = await getDoc(userDocRef);
+        // Listener para o estado de autenticação
+        onAuthStateChanged(auth, async (user) => {
+            const statusDiv = document.getElementById('status-message');
+            const authSection = document.getElementById('auth-section');
+            const adminControlsDiv = document.getElementById('admin-controls');
+            const currentUserEmailSpan = document.getElementById('currentUserEmail');
 
-                            if (userDocSnap.exists() && userDocSnap.data().isAdmin === true) {
-                                isUserAdmin = true;
-                                statusDiv.textContent = `Autenticado como admin (${user.uid})! Você pode salvar e abrir conteúdo.`;
-                                statusDiv.className = 'text-center text-lg font-semibold p-4 rounded-lg bg-green-200 text-green-800';
-                                adminControlsDiv.style.display = 'block';
-                            } else {
-                                isUserAdmin = false;
-                                statusDiv.textContent = `Autenticado, mas você não é um administrador. Seu UID é: ${user.uid}. O acesso é restrito.`;
-                                statusDiv.className = 'text-center text-lg font-semibold p-4 rounded-lg bg-yellow-200 text-yellow-800';
-                                adminControlsDiv.style.display = 'none';
-                            }
-                        } catch (error) {
-                            console.error("Erro ao verificar status de admin:", error);
-                            isUserAdmin = false;
-                            statusDiv.textContent = `Erro ao verificar status de admin: ${error.message}`;
-                            statusDiv.className = 'text-center text-lg font-semibold p-4 rounded-lg bg-red-200 text-red-800';
-                            adminControlsDiv.style.display = 'none';
-                        }
+            if (user) {
+                authSection.style.display = 'none';
+                currentUserEmailSpan.textContent = user.email || 'Usuário';
+
+                try {
+                    // Verifica se o usuário é um admin
+                    const userDocRef = doc(db, "users", user.uid);
+                    const userDocSnap = await getDoc(userDocRef);
+
+                    if (userDocSnap.exists() && userDocSnap.data().isAdmin === true) {
+                        isUserAdmin = true;
+                        statusDiv.textContent = `Autenticado como administrador (${user.uid}). Você pode salvar e abrir conteúdo.`;
+                        statusDiv.className = 'text-center text-lg font-semibold p-4 rounded-lg bg-green-200 text-green-800';
+                        adminControlsDiv.style.display = 'block';
                     } else {
                         isUserAdmin = false;
-                        statusDiv.textContent = "Autenticação falhou. O acesso é restrito.";
-                        statusDiv.className = 'text-center text-lg font-semibold p-4 rounded-lg bg-red-200 text-red-800';
+                        statusDiv.textContent = `Autenticado, mas você não é um administrador. Seu UID é: ${user.uid}. O acesso é restrito.`;
+                        statusDiv.className = 'text-center text-lg font-semibold p-4 rounded-lg bg-yellow-200 text-yellow-800';
                         adminControlsDiv.style.display = 'none';
                     }
-                });
-            } catch (error) {
-                console.error("Erro fatal ao inicializar o Firebase:", error);
-                statusDiv.textContent = `Erro fatal na inicialização: ${error.message}`;
-                statusDiv.className = 'text-center text-lg font-semibold p-4 rounded-lg bg-red-200 text-red-800';
+                } catch (error) {
+                    console.error("Erro ao verificar status de admin:", error);
+                    isUserAdmin = false;
+                    statusDiv.textContent = `Erro ao verificar status de admin: ${error.message}`;
+                    statusDiv.className = 'text-center text-lg font-semibold p-4 rounded-lg bg-red-200 text-red-800';
+                    adminControlsDiv.style.display = 'none';
+                }
+            } else {
+                isUserAdmin = false;
+                statusDiv.textContent = "Por favor, faça login para continuar.";
+                statusDiv.className = 'text-center text-lg font-semibold p-4 rounded-lg bg-gray-200 text-gray-800';
+                authSection.style.display = 'block';
+                adminControlsDiv.style.display = 'none';
             }
-        }
-        
-        // Chamada para inicializar o app
-        initializeAppAndAuth();
+        });
 
         // --- Funções de UI ---
 
