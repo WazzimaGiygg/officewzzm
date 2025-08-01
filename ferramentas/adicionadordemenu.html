@@ -99,10 +99,11 @@
     <p>Logado como <span id="currentUserEmail"></span> | <button id="logoutButton" style="background-color: #dc3545;">Sair</button></p>
 
     <div class="form-group">
-      <label for="idsiteInput">ID do Site (domínio):</label>
-      <input type="text" id="idsiteInput" placeholder="ex: wzzm.org">
+      <label for="searchIdsite">Buscar por ID do Site:</label>
+      <input type="text" id="searchIdsite" placeholder="ex: wzzm.org">
+      <button id="searchButton" style="background-color: #3f729b;">Buscar Menu</button>
     </div>
-
+    
     <h2>Itens de Menu</h2>
     <div id="menuItemsContainer"></div>
     <button id="addItemButton">+ Adicionar Item</button>
@@ -138,10 +139,15 @@
   const menuItemsContainer = document.getElementById('menuItemsContainer');
   const addItemButton = document.getElementById('addItemButton');
   const submitMenuItemsButton = document.getElementById('submitMenuItemsButton');
-  const idsiteInput = document.getElementById('idsiteInput');
   const submitMessage = document.getElementById('submitMessage');
 
-  function createMenuItemElement() {
+  // Novos elementos
+  const searchIdsiteInput = document.getElementById('searchIdsite');
+  const searchButton = document.getElementById('searchButton');
+  // Variável para armazenar os documentos a serem editados
+  let documentsToUpdate = [];
+
+  function createMenuItemElement(label = '', href = '', requiresAuth = 'false') {
     const wrapper = document.createElement('div');
     wrapper.className = 'link-entry';
 
@@ -149,16 +155,19 @@
     labelInput.type = 'text';
     labelInput.placeholder = 'Label';
     labelInput.className = 'label-field';
+    labelInput.value = label;
 
     const hrefInput = document.createElement('input');
     hrefInput.type = 'text';
     hrefInput.placeholder = 'Href';
     hrefInput.className = 'href-field';
+    hrefInput.value = href;
 
     const requiresAuthInput = document.createElement('input');
     requiresAuthInput.type = 'text';
     requiresAuthInput.placeholder = 'requiresAuth (true/false)';
     requiresAuthInput.className = 'auth-field';
+    requiresAuthInput.value = requiresAuth;
 
     const removeButton = document.createElement('button');
     removeButton.textContent = 'Remover';
@@ -173,23 +182,86 @@
     return wrapper;
   }
 
+  // Função para carregar os itens do Firebase no formulário
+  function loadMenuItemsToForm(items) {
+    menuItemsContainer.innerHTML = ''; // Limpa os itens existentes
+    items.forEach(item => {
+      const element = createMenuItemElement(item.label, item.href, item.requiresAuth);
+      menuItemsContainer.appendChild(element);
+    });
+  }
+
   addItemButton.addEventListener('click', () => {
     menuItemsContainer.appendChild(createMenuItemElement());
   });
 
-  submitMenuItemsButton.addEventListener('click', async () => {
-    const idsite = idsiteInput.value.trim().toLowerCase();
+  // Event listener para o novo botão de busca
+  searchButton.addEventListener('click', async () => {
+    const idsite = searchIdsiteInput.value.trim().toLowerCase();
     if (!idsite) {
-      submitMessage.textContent = 'ID do site é obrigatório.';
+      submitMessage.textContent = 'ID do site para busca é obrigatório.';
+      submitMessage.className = 'error';
+      return;
+    }
+    submitMessage.textContent = 'Buscando...';
+    submitMessage.className = '';
+    
+    try {
+      // Busca todos os documentos com o idsite correspondente
+      const snapshot = await db.collection("menuconfig").where("idsite", "==", idsite).get();
+      
+      documentsToUpdate = []; // Limpa a lista de documentos para edição
+      const menuItems = [];
+      
+      if (snapshot.empty) {
+        submitMessage.textContent = 'Nenhum menu encontrado para este ID do site. Adicione um novo.';
+        submitMessage.className = 'error';
+        menuItemsContainer.innerHTML = ''; // Limpa o container
+        // O formulário estará vazio, pronto para criar um novo
+      } else {
+        snapshot.forEach(doc => {
+          documentsToUpdate.push(doc.id); // Salva o ID do documento para futura atualização
+          menuItems.push(doc.data());
+        });
+        
+        loadMenuItemsToForm(menuItems);
+        submitMessage.textContent = `Menu para "${idsite}" carregado com sucesso.`;
+        submitMessage.className = 'success';
+      }
+    } catch (err) {
+      console.error('Erro ao buscar menu:', err);
+      submitMessage.textContent = 'Erro ao buscar o menu.';
+      submitMessage.className = 'error';
+    }
+  });
+
+  submitMenuItemsButton.addEventListener('click', async () => {
+    const idsite = searchIdsiteInput.value.trim().toLowerCase();
+    if (!idsite) {
+      submitMessage.textContent = 'ID do site é obrigatório para salvar.';
       submitMessage.className = 'error';
       return;
     }
 
     const entries = menuItemsContainer.querySelectorAll('.link-entry');
     if (entries.length === 0) {
-      submitMessage.textContent = 'Adicione pelo menos um item.';
+      submitMessage.textContent = 'Adicione pelo menos um item para salvar.';
       submitMessage.className = 'error';
       return;
+    }
+
+    // Se já existem documentos, nós os deletamos antes de salvar os novos
+    if (documentsToUpdate.length > 0) {
+      submitMessage.textContent = 'Atualizando menu...';
+      const batch = db.batch();
+      documentsToUpdate.forEach(docId => {
+        const docRef = db.collection("menuconfig").doc(docId);
+        batch.delete(docRef);
+      });
+      await batch.commit();
+      documentsToUpdate = []; // Limpa a lista
+    } else {
+      submitMessage.textContent = 'Criando novo menu...';
     }
 
     let sucesso = 0;
