@@ -12,8 +12,8 @@
     },
 
     {
-        "label": "Adicionador de HTML",
-        "href": "./ferramentas/adicionadordehtml.html",
+        "label": "Adicionador de Menu",
+        "href": "./ferramentas/adicionadordemenu.html",
         "requiresAuth": false
     },
     
