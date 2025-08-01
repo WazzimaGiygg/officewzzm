@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Editor de Configurações da Wiki (Admin)</title>
+  <title>MenuConfig Editor - WZZM</title>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
@@ -11,16 +11,16 @@
     body {
       font-family: Arial, sans-serif;
       background: #f4f4f4;
+      padding: 30px;
       display: flex;
       justify-content: center;
-      padding: 30px;
     }
     .container {
       background: white;
       padding: 25px;
       border-radius: 10px;
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
-      max-width: 700px;
+      max-width: 800px;
       width: 100%;
     }
     h1, h2 {
@@ -28,91 +28,91 @@
       color: #0056b3;
     }
     .form-group {
-      margin-bottom: 16px;
+      margin-bottom: 15px;
     }
     label {
       font-weight: bold;
     }
     input[type="text"],
     input[type="email"],
-    input[type="password"],
-    input[type="color"] {
+    input[type="password"] {
       width: 100%;
       padding: 10px;
+      margin-top: 5px;
       border: 1px solid #ccc;
       border-radius: 5px;
-      margin-top: 5px;
     }
     button {
-      padding: 12px;
-      width: 100%;
+      padding: 10px 15px;
+      margin-top: 10px;
       border: none;
       border-radius: 5px;
       background-color: #007bff;
       color: white;
-      font-size: 16px;
-      margin-top: 10px;
       cursor: pointer;
+      font-size: 16px;
     }
     button:hover {
       background-color: #0056b3;
     }
-    .secondary-button {
-      background-color: #6f42c1;
+    .link-entry {
+      border: 1px solid #ccc;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 5px;
+      background-color: #fafafa;
     }
-    .secondary-button:hover {
-      background-color: #5a359f;
+    .remove-button {
+      background-color: #dc3545;
     }
-    .error-message {
-      color: red;
-      text-align: center;
+    .remove-button:hover {
+      background-color: #bb2d3b;
+    }
+    .success {
+      color: green;
       margin-top: 10px;
     }
-    #output {
-      background: #eee;
-      padding: 10px;
-      border-radius: 5px;
-      margin-top: 15px;
-      font-family: monospace;
-      white-space: pre-wrap;
+    .error {
+      color: red;
+      margin-top: 10px;
     }
   </style>
 </head>
 <body>
 <div class="container">
-  <h1>Admin WZZM</h1>
+  <h1>Gerenciador de MenuConfig</h1>
 
   <div id="auth-section">
-    <h2>Login</h2>
     <div class="form-group">
-      <label for="email">Email</label>
-      <input type="email" id="email" placeholder="admin@exemplo.com">
+      <label for="email">E-mail</label>
+      <input type="email" id="email">
     </div>
     <div class="form-group">
       <label for="password">Senha</label>
-      <input type="password" id="password" placeholder="••••••••">
+      <input type="password" id="password">
     </div>
     <button id="loginButton">Entrar</button>
-    <p id="authError" class="error-message"></p>
+    <p id="authError" class="error"></p>
   </div>
 
-  <div id="editor-section" style="display: none;">
-    <p>Bem-vindo, <span id="currentUserEmail"></span>! <button id="logoutButton" style="background-color: #dc3545;">Sair</button></p>
+  <div id="editor-section" style="display:none;">
+    <p>Logado como <span id="currentUserEmail"></span> | <button id="logoutButton" style="background-color: #dc3545;">Sair</button></p>
 
     <div class="form-group">
-      <label for="documentIdInput">ID do site (ex: wzzm.org):</label>
-      <input type="text" id="documentIdInput" placeholder="dominio do site">
+      <label for="idsiteInput">ID do Site (domínio):</label>
+      <input type="text" id="idsiteInput" placeholder="ex: wzzm.org">
     </div>
 
-    <button id="addMenuItemsButton" class="secondary-button">Inserir MenuConfig Padrão</button>
-    <p id="docMessage" class="error-message" style="color: green;"></p>
+    <h2>Itens de Menu</h2>
+    <div id="menuItemsContainer"></div>
+    <button id="addItemButton">+ Adicionar Item</button>
 
-    <div id="output">Aguardando ação...</div>
+    <button id="submitMenuItemsButton" style="background-color: #28a745;">Salvar no Firebase</button>
+    <p id="submitMessage"></p>
   </div>
 </div>
 
 <script>
-  // Firebase Config
   const firebaseConfig = {
     apiKey: "AIzaSyB9GkSqTIZ0kbVsba_WOdQeVAETrF9qna0",
     authDomain: "wzzm-ce3fc.firebaseapp.com",
@@ -128,106 +128,125 @@
 
   const authSection = document.getElementById('auth-section');
   const editorSection = document.getElementById('editor-section');
-  const emailInput = document.getElementById('email');
-  const passwordInput = document.getElementById('password');
   const loginButton = document.getElementById('loginButton');
   const logoutButton = document.getElementById('logoutButton');
+  const emailInput = document.getElementById('email');
+  const passwordInput = document.getElementById('password');
   const authError = document.getElementById('authError');
-  const currentUserEmailSpan = document.getElementById('currentUserEmail');
-  const addMenuItemsButton = document.getElementById('addMenuItemsButton');
-  const documentIdInput = document.getElementById('documentIdInput');
-  const docMessage = document.getElementById('docMessage');
-  const outputDiv = document.getElementById('output');
+  const currentUserEmail = document.getElementById('currentUserEmail');
 
-  function cleanDocId(id) {
-    if (!id) return '';
-    let cleanedId = id.trim().toLowerCase();
-    if (cleanedId.startsWith('www.')) {
-      cleanedId = cleanedId.substring(4);
-    }
-    return cleanedId.split('/')[0].split(':')[0];
+  const menuItemsContainer = document.getElementById('menuItemsContainer');
+  const addItemButton = document.getElementById('addItemButton');
+  const submitMenuItemsButton = document.getElementById('submitMenuItemsButton');
+  const idsiteInput = document.getElementById('idsiteInput');
+  const submitMessage = document.getElementById('submitMessage');
+
+  function createMenuItemElement() {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'link-entry';
+
+    const labelInput = document.createElement('input');
+    labelInput.type = 'text';
+    labelInput.placeholder = 'Label';
+    labelInput.className = 'label-field';
+
+    const hrefInput = document.createElement('input');
+    hrefInput.type = 'text';
+    hrefInput.placeholder = 'Href';
+    hrefInput.className = 'href-field';
+
+    const requiresAuthInput = document.createElement('input');
+    requiresAuthInput.type = 'text';
+    requiresAuthInput.placeholder = 'requiresAuth (true/false)';
+    requiresAuthInput.className = 'auth-field';
+
+    const removeButton = document.createElement('button');
+    removeButton.textContent = 'Remover';
+    removeButton.className = 'remove-button';
+    removeButton.onclick = () => wrapper.remove();
+
+    wrapper.appendChild(labelInput);
+    wrapper.appendChild(hrefInput);
+    wrapper.appendChild(requiresAuthInput);
+    wrapper.appendChild(removeButton);
+
+    return wrapper;
   }
 
-  // Login
-  loginButton.addEventListener('click', async () => {
-    const email = emailInput.value;
-    const password = passwordInput.value;
-    authError.textContent = '';
-    if (!email || !password) {
-      authError.textContent = 'Preencha o e-mail e a senha.';
+  addItemButton.addEventListener('click', () => {
+    menuItemsContainer.appendChild(createMenuItemElement());
+  });
+
+  submitMenuItemsButton.addEventListener('click', async () => {
+    const idsite = idsiteInput.value.trim().toLowerCase();
+    if (!idsite) {
+      submitMessage.textContent = 'ID do site é obrigatório.';
+      submitMessage.className = 'error';
       return;
     }
 
+    const entries = menuItemsContainer.querySelectorAll('.link-entry');
+    if (entries.length === 0) {
+      submitMessage.textContent = 'Adicione pelo menos um item.';
+      submitMessage.className = 'error';
+      return;
+    }
+
+    let sucesso = 0;
+    let falhas = 0;
+
+    for (const entry of entries) {
+      const label = entry.querySelector('.label-field').value.trim();
+      const href = entry.querySelector('.href-field').value.trim();
+      const requiresAuthRaw = entry.querySelector('.auth-field').value.trim().toLowerCase();
+      const requiresAuth = requiresAuthRaw === 'true';
+
+      if (!label || !href) continue;
+
+      try {
+        await db.collection("menuconfig").add({
+          label, href, requiresAuth, idsite
+        });
+        sucesso++;
+      } catch (err) {
+        console.error('Erro ao salvar:', err);
+        falhas++;
+      }
+    }
+
+    submitMessage.textContent = `Itens salvos com sucesso: ${sucesso}, falhas: ${falhas}`;
+    submitMessage.className = falhas === 0 ? 'success' : 'error';
+  });
+
+  // Auth
+  loginButton.addEventListener('click', async () => {
+    const email = emailInput.value;
+    const password = passwordInput.value;
+    if (!email || !password) {
+      authError.textContent = 'Preencha o e-mail e senha.';
+      return;
+    }
     try {
       await auth.signInWithEmailAndPassword(email, password);
-    } catch (error) {
-      console.error("Erro ao logar:", error);
+    } catch (err) {
+      console.error('Erro de login:', err);
       authError.textContent = 'Erro ao fazer login.';
     }
   });
 
   logoutButton.addEventListener('click', async () => {
-    try {
-      await auth.signOut();
-    } catch (error) {
-      console.error("Erro ao sair:", error);
-    }
+    await auth.signOut();
   });
 
   auth.onAuthStateChanged(user => {
     if (user) {
       authSection.style.display = 'none';
       editorSection.style.display = 'block';
-      currentUserEmailSpan.textContent = user.email;
+      currentUserEmail.textContent = user.email;
     } else {
       authSection.style.display = 'block';
       editorSection.style.display = 'none';
-      documentIdInput.value = '';
-      outputDiv.textContent = 'Aguardando ação...';
     }
-  });
-
-  const menuItems = [
-    {
-      "label": "Video oficial recente",
-      "href": "./vids/",
-      "requiresAuth": false
-    },
-    {
-      "label": "Transparência",
-      "href": "./transparencia/",
-      "requiresAuth": false
-    }
-  ];
-
-  addMenuItemsButton.addEventListener('click', async () => {
-    const idsite = cleanDocId(documentIdInput.value);
-
-    if (!idsite) {
-      docMessage.textContent = 'Digite um ID válido (domínio) para usar como "idsite".';
-      docMessage.style.color = 'red';
-      return;
-    }
-
-    let sucesso = 0;
-    let falha = 0;
-
-    for (const item of menuItems) {
-      try {
-        await db.collection("menuconfig").add({
-          ...item,
-          idsite: idsite
-        });
-        sucesso++;
-      } catch (error) {
-        console.error("Erro ao adicionar item:", item, error);
-        falha++;
-      }
-    }
-
-    docMessage.textContent = `Itens adicionados: ${sucesso}, falhas: ${falha}.`;
-    docMessage.style.color = falha === 0 ? 'green' : 'orange';
-    outputDiv.textContent = JSON.stringify(menuItems.map(m => ({ ...m, idsite })), null, 2);
   });
 </script>
 </body>
