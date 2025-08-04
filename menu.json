@@ -15,13 +15,6 @@
         "label": "Adicionador de Menu",
         "href": "./ferramentas/adicionadordemenu.html",
         "requiresAuth": false
-    },
-    
-    
-    {
-        "label": "Alterar JSON de Página WZZM",
-        "href": "./ferramentas/alterarjsondepagina.html",
-        "requiresAuth": false
     }
     
 ]
