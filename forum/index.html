@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <title>Lista de Fóruns - WZZM</title>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
   <style>
     body { font-family: Arial, sans-serif; padding: 20px; }
@@ -22,14 +23,27 @@
       font-size: 12px;
       color: #555;
     }
+    #loginStatus {
+      margin-bottom: 20px;
+      padding: 10px;
+      background: #eef;
+      border: 1px solid #99c;
+      border-radius: 6px;
+    }
+    button {
+      padding: 5px 10px;
+      border-radius: 5px;
+    }
   </style>
 </head>
 <body>
+  <div id="loginStatus">Verificando login...</div>
+
   <h2>Fóruns Criados</h2>
-  <div id="forumList">Carregando...</div>
+  <div id="forumList">Carregando fóruns...</div>
 
   <script>
-    // --- Configuração do Firebase ---
+    // --- Firebase Config ---
     const firebaseConfig = {
       apiKey: "AIzaSyB9GkSqTIZ0kbVsba_WOdQeVAETrF9qna0",
       authDomain: "wzzm-ce3fc.firebaseapp.com",
@@ -39,22 +53,54 @@
       appId: "1:249427877153:web:0e4297294794a5aadeb260",
       measurementId: "G-PLKNZNFCQ8"
     };
+
     firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
     const db = firebase.firestore();
 
+    const loginStatus = document.getElementById("loginStatus");
+
+    // --- Login com Google ---
+    function login() {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      auth.signInWithPopup(provider).catch(error => {
+        console.error("Erro ao logar:", error);
+      });
+    }
+
+    function logout() {
+      auth.signOut();
+    }
+
+    // --- Verifica o estado de autenticação ---
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        loginStatus.innerHTML = `
+          🔓 Logado como: <strong>${user.displayName}</strong> (${user.email})
+          <button onclick="logout()">Sair</button>
+        `;
+        carregarForuns();
+      } else {
+        loginStatus.innerHTML = `
+          🔒 Você não está logado.
+          <button onclick="login()">Entrar com Google</button>
+        `;
+        document.getElementById("forumList").innerHTML = "Você precisa estar logado para ver os fóruns.";
+      }
+    });
+
+    // --- Função para carregar os fóruns ---
     async function carregarForuns() {
       const container = document.getElementById('forumList');
       container.innerHTML = "⏳ Carregando fóruns...";
 
       try {
         const snapshot = await db.collection("forumwzzm").get();
-
         const forums = {};
 
         snapshot.forEach(doc => {
           const data = doc.data();
           const uid = data.uidforum;
-
           if (!uid) return;
 
           if (!forums[uid]) {
@@ -63,7 +109,7 @@
               descricao: '',
               tipo: '',
               uidusuario: '',
-              data: doc.createTime.toDate()
+              data: data.timestamp ? data.timestamp.toDate() : new Date(0)
             };
           }
 
@@ -71,9 +117,12 @@
           if (data.descricao) forums[uid].descricao = data.descricao;
           if (data.tipoforum) forums[uid].tipo = data.tipoforum;
           if (data.uidusuario) forums[uid].uidusuario = data.uidusuario;
+
+          if (data.timestamp && (!forums[uid].data || data.timestamp.toDate() > forums[uid].data)) {
+            forums[uid].data = data.timestamp.toDate();
+          }
         });
 
-        // Ordenar por data
         const forumList = Object.entries(forums).sort((a, b) => b[1].data - a[1].data);
 
         if (forumList.length === 0) {
@@ -100,11 +149,9 @@
 
       } catch (error) {
         console.error("Erro ao carregar fóruns:", error);
-        container.innerHTML = "Erro ao carregar fóruns.";
+        container.innerHTML = "❌ Erro ao carregar fóruns.";
       }
     }
-
-    carregarForuns();
   </script>
 </body>
 </html>
