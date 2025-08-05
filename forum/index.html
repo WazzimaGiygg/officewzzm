@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Lista de Fóruns - WZZM</title>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    .forum-card {
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 15px;
+      background: #f9f9f9;
+    }
+    .forum-title {
+      font-size: 18px;
+      font-weight: bold;
+    }
+    .forum-meta {
+      font-size: 12px;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+  <h2>Fóruns Criados</h2>
+  <div id="forumList">Carregando...</div>
+
+  <script>
+    // --- Configuração do Firebase ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyB9GkSqTIZ0kbVsba_WOdQeVAETrF9qna0",
+      authDomain: "wzzm-ce3fc.firebaseapp.com",
+      projectId: "wzzm-ce3fc",
+      storageBucket: "wzzm-ce3fc.appspot.com",
+      messagingSenderId: "249427877153",
+      appId: "1:249427877153:web:0e4297294794a5aadeb260",
+      measurementId: "G-PLKNZNFCQ8"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    async function carregarForuns() {
+      const container = document.getElementById('forumList');
+      container.innerHTML = "⏳ Carregando fóruns...";
+
+      try {
+        const snapshot = await db.collection("forumwzzm").get();
+
+        const forums = {};
+
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          const uid = data.uidforum;
+
+          if (!uid) return;
+
+          if (!forums[uid]) {
+            forums[uid] = {
+              titulo: '',
+              descricao: '',
+              tipo: '',
+              uidusuario: '',
+              data: doc.createTime.toDate()
+            };
+          }
+
+          if (data.titulo) forums[uid].titulo = data.titulo;
+          if (data.descricao) forums[uid].descricao = data.descricao;
+          if (data.tipoforum) forums[uid].tipo = data.tipoforum;
+          if (data.uidusuario) forums[uid].uidusuario = data.uidusuario;
+        });
+
+        // Ordenar por data
+        const forumList = Object.entries(forums).sort((a, b) => b[1].data - a[1].data);
+
+        if (forumList.length === 0) {
+          container.innerHTML = "Nenhum fórum criado ainda.";
+          return;
+        }
+
+        container.innerHTML = "";
+
+        forumList.forEach(([uid, forum]) => {
+          const div = document.createElement("div");
+          div.className = "forum-card";
+          div.innerHTML = `
+            <div class="forum-title">${forum.titulo || "(Sem título)"}</div>
+            <div>${forum.descricao || "(Sem descrição)"}</div>
+            <div class="forum-meta">
+              Tipo: ${forum.tipo || "indefinido"}<br>
+              Criado por: ${forum.uidusuario || "desconhecido"}<br>
+              Criado em: ${forum.data.toLocaleString()}
+            </div>
+          `;
+          container.appendChild(div);
+        });
+
+      } catch (error) {
+        console.error("Erro ao carregar fóruns:", error);
+        container.innerHTML = "Erro ao carregar fóruns.";
+      }
+    }
+
+    carregarForuns();
+  </script>
+</body>
+</html>
