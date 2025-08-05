@@ -12,6 +12,12 @@
     },
 
     {
+        "label": "Editor de HTML formatado",
+        "href": "novapostagem/",
+        "requiresAuth": false
+    },
+
+    {
         "label": "Forum",
         "href": "forum/",
         "requiresAuth": false
