@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Criar Fórum - WZZM</title>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+</head>
+<body>
+  <h2>Criar Novo Fórum</h2>
+  <form id="forumForm">
+    <label>Título: <input type="text" id="titulo" required></label><br><br>
+    <label>Descrição: <textarea id="descricao" required></textarea></label><br><br>
+    <label>Tipo de Fórum: 
+      <select id="tipo">
+        <option value="educacional">Educacional</option>
+        <option value="livre">Livre</option>
+        <option value="projeto">Projeto</option>
+      </select>
+    </label><br><br>
+    <button type="submit">Criar Fórum</button>
+  </form>
+
+  <p id="status"></p>
+
+  <script>
+    // --- Configuração do Firebase ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyB9GkSqTIZ0kbVsba_WOdQeVAETrF9qna0",
+      authDomain: "wzzm-ce3fc.firebaseapp.com",
+      projectId: "wzzm-ce3fc",
+      storageBucket: "wzzm-ce3fc.appspot.com",
+      messagingSenderId: "249427877153",
+      appId: "1:249427877153:web:0e4297294794a5aadeb260",
+      measurementId: "G-PLKNZNFCQ8"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const auth = firebase.auth();
+
+    // --- Verifica autenticação do usuário ---
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        console.log("Usuário autenticado:", user.uid);
+
+        document.getElementById("forumForm").addEventListener("submit", async function (e) {
+          e.preventDefault();
+
+          const titulo = document.getElementById("titulo").value;
+          const descricao = document.getElementById("descricao").value;
+          const tipo = document.getElementById("tipo").value;
+          const uidUsuario = user.uid;
+
+          try {
+            // 1. Criar documento "base" vazio só para pegar o UID automático
+            const docRef = await db.collection("forumwzzm").add({});
+            const uidforum = docRef.id;
+
+            // 2. Criar documentos separados com campos e o uidforum
+            await db.collection("forumwzzm").add({
+              titulo: titulo,
+              uidforum: uidforum
+            });
+
+            await db.collection("forumwzzm").add({
+              descricao: descricao,
+              uidforum: uidforum
+            });
+
+            await db.collection("forumwzzm").add({
+              uidusuario: uidUsuario,
+              uidforum: uidforum
+            });
+
+            await db.collection("forumwzzm").add({
+              tipoforum: tipo,
+              uidforum: uidforum
+            });
+
+            document.getElementById("status").innerText = "✅ Fórum criado com sucesso! UID: " + uidforum;
+            document.getElementById("forumForm").reset();
+
+          } catch (error) {
+            console.error("Erro ao criar o fórum:", error);
+            document.getElementById("status").innerText = "❌ Erro ao criar o fórum.";
+          }
+        });
+
+      } else {
+        document.getElementById("status").innerText = "⚠️ Você precisa estar logado para criar um fórum.";
+      }
+    });
+  </script>
+</body>
+</html>
