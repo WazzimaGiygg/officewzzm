@@ -12,8 +12,8 @@
     },
 
     {
-        "label": "Adicionador de Menu",
-        "href": "./ferramentas/adicionadordemenu.html",
+        "label": "Forum",
+        "href": "forum/",
         "requiresAuth": false
     }
     
